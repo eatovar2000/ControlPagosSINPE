@@ -21,6 +21,12 @@ export default function PendientesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Modal state for claim/classify
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedMovement, setSelectedMovement] = useState(null);
+  const [responsibleName, setResponsibleName] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const loadMovements = async (showLoader = true) => {
     if (showLoader) setLoading(true);
