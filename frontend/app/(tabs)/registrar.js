@@ -7,14 +7,13 @@ import {
   TextInput,
   Pressable,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../lib/theme';
 
 export default function RegistrarScreen() {
   const [selectedType, setSelectedType] = useState(null);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.brand}>SUMA</Text>
         <Text style={styles.title}>Registrar</Text>
@@ -108,7 +107,7 @@ export default function RegistrarScreen() {
           <Text style={styles.submitBtnText}>Guardar movimiento</Text>
         </Pressable>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
