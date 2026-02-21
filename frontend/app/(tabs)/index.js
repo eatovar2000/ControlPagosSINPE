@@ -326,6 +326,18 @@ export default function PendientesScreen() {
               />
               
               <View style={styles.statusButtons}>
+                {selectedMovement?.status !== 'pending' && (
+                  <Pressable
+                    style={[styles.statusBtn, styles.reopenBtn]}
+                    onPress={() => updateMovementStatus('pending')}
+                    disabled={saving}
+                    testID="reopen-btn"
+                  >
+                    <Text style={styles.statusBtnText}>
+                      {saving ? 'Guardando...' : 'Reabrir'}
+                    </Text>
+                  </Pressable>
+                )}
                 <Pressable
                   style={[styles.statusBtn, styles.classifyBtn]}
                   onPress={() => updateMovementStatus('classified')}
