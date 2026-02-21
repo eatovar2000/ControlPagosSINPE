@@ -28,6 +28,24 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 
 ## What's Been Implemented
 
+### 2026-02-21 — FASE 7: Pendientes + Claim
+- [x] Campo `status` en movements validado: `pending | classified | closed` (Literal type)
+- [x] Campo `responsible` opcional (texto libre) editable desde UI
+- [x] Tab Pendientes filtra solo `status='pending'`
+- [x] Modal para clasificar movimientos desde la lista de pendientes
+- [x] Botones "Clasificar" y "Cerrar" cambian status en backend
+- [x] Input de responsable en modal
+- [x] Mantiene ownership por `user_id`
+- [x] Testing: 69/70 tests pasaron (99%)
+
+### 2026-02-21 — Movements Module (Protected)
+- [x] Todos los endpoints de movements requieren autenticación
+- [x] Movimientos asociados a `user_id` del usuario autenticado
+- [x] GET /movements filtra por usuario + status opcional
+- [x] POST /movements crea con `status='pending'` por defecto
+- [x] PATCH /movements/{id} actualiza status y responsible
+- [x] DELETE /movements/{id} solo si es propietario
+
 ### 2026-02-21 — Authentication Module (Firebase Auth)
 - [x] Firebase Admin SDK configurado en backend
 - [x] Modelo `User` en PostgreSQL (firebase_uid, email, phone, role, etc.)
