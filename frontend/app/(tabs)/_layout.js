@@ -155,4 +155,44 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     letterSpacing: 0.5,
   },
+  // List icon (3 horizontal lines)
+  listIconWrap: {
+    width: 20,
+    height: 16,
+    justifyContent: 'space-between',
+  },
+  listLine: {
+    width: 20,
+    height: 3,
+    backgroundColor: colors.textMuted,
+    borderRadius: 1.5,
+  },
+  listLineActive: {
+    backgroundColor: colors.primary,
+  },
+  // Chart icon (3 vertical bars)
+  chartIconWrap: {
+    width: 20,
+    height: 18,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  chartBar: {
+    width: 5,
+    backgroundColor: colors.textMuted,
+    borderRadius: 2,
+  },
+  chartBar1: {
+    height: 8,
+  },
+  chartBar2: {
+    height: 14,
+  },
+  chartBar3: {
+    height: 11,
+  },
+  chartBarActive: {
+    backgroundColor: colors.primary,
+  },
 });
