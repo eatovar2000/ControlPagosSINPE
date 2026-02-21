@@ -1,0 +1,11 @@
+{
+  "short_name": "Suma",
+  "name": "Suma - Tu negocio, en orden",
+  "description": "App de gestion de movimientos para emprendedores en Costa Rica",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1B4D3E",
+  "background_color": "#F4F1DE",
+  "icons": []
+}
