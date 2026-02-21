@@ -569,6 +569,9 @@ const styles = StyleSheet.create({
   closeBtn: {
     backgroundColor: colors.secondary,
   },
+  reopenBtn: {
+    backgroundColor: colors.warning || '#F59E0B',
+  },
   statusBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
