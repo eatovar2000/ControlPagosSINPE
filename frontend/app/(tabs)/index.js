@@ -22,19 +22,25 @@ export default function PendientesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   
+  // Filter state: 'pending' or 'all' - always defaults to 'pending'
+  const [filter, setFilter] = useState('pending');
+  
   // Modal state for claim/classify
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState(null);
   const [responsibleName, setResponsibleName] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const loadMovements = async (showLoader = true) => {
+  const loadMovements = async (showLoader = true, currentFilter = filter) => {
     if (showLoader) setLoading(true);
     setError(null);
     
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch(`${API_URL}/v1/movements?status=pending`, {
+      const url = currentFilter === 'pending' 
+        ? `${API_URL}/v1/movements?status=pending`
+        : `${API_URL}/v1/movements`;
+      const res = await fetch(url, {
         headers: {
           ...authHeader,
         },
@@ -59,18 +65,26 @@ export default function PendientesScreen() {
     }
   };
 
-  // Reload on tab focus
+  // Reload on tab focus - always reset to 'pending' filter
   useFocusEffect(
     useCallback(() => {
       if (isAuthenticated) {
-        loadMovements();
+        setFilter('pending');
+        loadMovements(true, 'pending');
       }
     }, [isAuthenticated])
   );
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadMovements(false);
+    loadMovements(false, filter);
+  };
+
+  const handleFilterChange = (newFilter) => {
+    if (newFilter !== filter) {
+      setFilter(newFilter);
+      loadMovements(true, newFilter);
+    }
   };
 
   const openClaimModal = (movement) => {
@@ -139,10 +153,36 @@ export default function PendientesScreen() {
         }
       >
         <Text style={styles.brand}>SUMA</Text>
-        <Text style={styles.title}>Pendientes</Text>
+        <Text style={styles.title}>Movimientos</Text>
+        
+        {/* Filter Selector */}
+        <View style={styles.filterRow} testID="filter-selector">
+          <Text style={styles.filterLabel}>Mostrar:</Text>
+          <View style={styles.filterPills}>
+            <Pressable
+              style={[styles.filterPill, filter === 'pending' && styles.filterPillActive]}
+              onPress={() => handleFilterChange('pending')}
+              testID="filter-pending-btn"
+            >
+              <Text style={[styles.filterPillText, filter === 'pending' && styles.filterPillTextActive]}>
+                Pendientes
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.filterPill, filter === 'all' && styles.filterPillActive]}
+              onPress={() => handleFilterChange('all')}
+              testID="filter-all-btn"
+            >
+              <Text style={[styles.filterPillText, filter === 'all' && styles.filterPillTextActive]}>
+                Todos
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+        
         <Text style={styles.subtitle}>
-          {movements.length} movimiento{movements.length !== 1 ? 's' : ''} por
-          clasificar
+          {movements.length} movimiento{movements.length !== 1 ? 's' : ''}
+          {filter === 'pending' ? ' por clasificar' : ''}
         </Text>
 
         {loading ? (
