@@ -41,7 +41,7 @@ class MovementCreate(BaseModel):
     description: str = ""
     responsible: Optional[str] = None
     business_unit_id: Optional[str] = None
-    status: str = "pending"
+    status: Literal["pending", "classified", "closed"] = "pending"
     date: str
     tags: List[str] = []
 
@@ -52,7 +52,7 @@ class MovementUpdate(BaseModel):
     description: Optional[str] = None
     responsible: Optional[str] = None
     business_unit_id: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[Literal["pending", "classified", "closed"]] = None
     date: Optional[str] = None
     tags: Optional[List[str]] = None
 
