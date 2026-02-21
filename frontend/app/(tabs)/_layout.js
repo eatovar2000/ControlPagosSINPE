@@ -12,11 +12,13 @@ function TabIcon({ name, focused, isCenter }) {
     );
   }
 
+  // Clear icons: list/inbox for Pendientes, chart for KPIs
   const icons = {
-    Pendientes: focused ? '\u25CF' : '\u25CB',
-    KPIs: focused ? '\u25A0' : '\u25A1',
+    Pendientes: '\u2630', // ☰ hamburger/list icon
+    KPIs: '\u2261',       // ≡ three lines / could represent bars
   };
-
+  
+  // Alternative visual: filled vs outline effect via opacity
   return (
     <View style={styles.tabIconWrap}>
       <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>
