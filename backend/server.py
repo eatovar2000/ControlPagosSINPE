@@ -60,6 +60,7 @@ class MovementUpdate(BaseModel):
 class MovementResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
+    user_id: str
     type: str
     amount: float
     currency: str
@@ -237,7 +238,22 @@ async def get_current_user_profile(
     return user
 
 
-# --- Movements ---
+# --- Movements (Protected - require authentication) ---
+
+async def get_db_user_id(
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> str:
+    """Helper to get local user ID from Firebase token"""
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    return user_id
+
 
 @v1_router.get("/movements", response_model=List[MovementResponse])
 async def list_movements(
@@ -245,9 +261,21 @@ async def list_movements(
     type: Optional[str] = None,
     limit: int = Query(50, le=200),
     offset: int = 0,
+    firebase_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = select(Movement)
+    """List movements for the authenticated user"""
+    # Get local user ID
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
+    # Query movements for this user only
+    q = select(Movement).where(Movement.user_id == user_id)
     if status:
         q = q.where(Movement.status == status)
     if type:
@@ -258,10 +286,25 @@ async def list_movements(
 
 
 @v1_router.post("/movements", response_model=MovementResponse)
-async def create_movement(data: MovementCreate, db: AsyncSession = Depends(get_db)):
+async def create_movement(
+    data: MovementCreate,
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new movement for the authenticated user"""
+    # Get local user ID
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
     now = datetime.now(timezone.utc).isoformat()
     mov = Movement(
         id=str(uuid.uuid4()),
+        user_id=user_id,
         **data.model_dump(),
         created_at=now,
         updated_at=now,
@@ -273,21 +316,59 @@ async def create_movement(data: MovementCreate, db: AsyncSession = Depends(get_d
 
 
 @v1_router.patch("/movements/{movement_id}", response_model=MovementResponse)
-async def update_movement(movement_id: str, data: MovementUpdate, db: AsyncSession = Depends(get_db)):
-    updates = {k: v for k, v in data.model_dump().items() if v is not None}
-    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await db.execute(update(Movement).where(Movement.id == movement_id).values(**updates))
-    await db.commit()
-    result = await db.execute(select(Movement).where(Movement.id == movement_id))
+async def update_movement(
+    movement_id: str,
+    data: MovementUpdate,
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a movement (only if owned by user)"""
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
+    # Check ownership
+    result = await db.execute(
+        select(Movement).where(Movement.id == movement_id, Movement.user_id == user_id)
+    )
     mov = result.scalar_one_or_none()
     if not mov:
         raise HTTPException(status_code=404, detail="Movement not found")
+    
+    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.execute(
+        update(Movement)
+        .where(Movement.id == movement_id, Movement.user_id == user_id)
+        .values(**updates)
+    )
+    await db.commit()
+    await db.refresh(mov)
     return mov
 
 
 @v1_router.delete("/movements/{movement_id}")
-async def delete_movement(movement_id: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(delete(Movement).where(Movement.id == movement_id))
+async def delete_movement(
+    movement_id: str,
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a movement (only if owned by user)"""
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
+    result = await db.execute(
+        delete(Movement).where(Movement.id == movement_id, Movement.user_id == user_id)
+    )
     await db.commit()
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Movement not found")
@@ -330,14 +411,40 @@ async def create_tag(data: TagCreate, db: AsyncSession = Depends(get_db)):
     return tag
 
 
-# --- KPIs ---
+# --- KPIs (Protected - user-specific) ---
 
 @v1_router.get("/kpis/summary", response_model=KPISummary)
-async def kpi_summary(db: AsyncSession = Depends(get_db)):
-    income = await db.execute(select(func.coalesce(func.sum(Movement.amount), 0)).where(Movement.type == "income"))
-    expense = await db.execute(select(func.coalesce(func.sum(Movement.amount), 0)).where(Movement.type == "expense"))
-    count = await db.execute(select(func.count()).select_from(Movement))
-    pending = await db.execute(select(func.count()).select_from(Movement).where(Movement.status == "pending"))
+async def kpi_summary(
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get KPI summary for the authenticated user's movements"""
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
+    income = await db.execute(
+        select(func.coalesce(func.sum(Movement.amount), 0))
+        .where(Movement.user_id == user_id, Movement.type == "income")
+    )
+    expense = await db.execute(
+        select(func.coalesce(func.sum(Movement.amount), 0))
+        .where(Movement.user_id == user_id, Movement.type == "expense")
+    )
+    count = await db.execute(
+        select(func.count())
+        .select_from(Movement)
+        .where(Movement.user_id == user_id)
+    )
+    pending = await db.execute(
+        select(func.count())
+        .select_from(Movement)
+        .where(Movement.user_id == user_id, Movement.status == "pending")
+    )
 
     total_income = float(income.scalar())
     total_expense = float(expense.scalar())

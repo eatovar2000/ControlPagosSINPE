@@ -1,0 +1,84 @@
+{
+  "summary": "Backend authentication testing for movements module - 26/26 tests passed. All protected endpoints correctly require Firebase JWT authentication and return 401 without valid tokens.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/seed",
+        "issue": "Seed function fails with IntegrityError - movements are created without user_id, but user_id is NOT NULL in database. Error: 'null value in column user_id of relation movements violates not-null constraint'",
+        "priority": "HIGH",
+        "fix": "Add user_id to seed movements or create a test user first, or make seed function create a demo user and assign movements to that user"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Health endpoint returns ok with firebase=configured",
+    "GET /api/v1/movements returns 401 without token",
+    "GET /api/v1/movements returns 401 with invalid token",
+    "GET /api/v1/movements returns 401 with malformed token",
+    "GET /api/v1/movements?status=pending requires auth",
+    "GET /api/v1/movements?type=income requires auth",
+    "POST /api/v1/movements returns 401 without token",
+    "POST /api/v1/movements returns 401 with invalid token",
+    "PATCH /api/v1/movements/{id} returns 401 without token",
+    "PATCH /api/v1/movements/{id} returns 401 with invalid token",
+    "DELETE /api/v1/movements/{id} returns 401 without token",
+    "DELETE /api/v1/movements/{id} returns 401 with invalid token",
+    "GET /api/v1/kpis/summary returns 401 without token",
+    "GET /api/v1/kpis/summary returns 401 with invalid token",
+    "GET /api/v1/kpis/summary returns 401 with malformed token",
+    "GET /api/v1/auth/me returns 401 without token",
+    "GET /api/v1/auth/me returns 401 with invalid token",
+    "POST /api/v1/auth/register returns 401 without token",
+    "POST /api/v1/auth/register returns 401 with invalid token",
+    "GET /api/v1/business-units is public (200 OK)",
+    "POST /api/v1/business-units is public (200 OK)",
+    "GET /api/v1/tags is public (200 OK)",
+    "POST /api/v1/tags is public (200 OK)",
+    "Error message 'Authorization header required' for missing token",
+    "Error message 'Invalid token' for invalid token"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_movements_auth.py",
+    "/app/test_reports/pytest/pytest_results_auth.xml"
+  ],
+  "action_items": [
+    "FIX CRITICAL: Update /api/seed endpoint to create a demo user first and assign user_id to seed movements, OR remove/modify seed endpoint since movements now require user ownership"
+  ],
+  "critical_code_review_comments": [
+    "Seed function (server.py lines 486-507) creates Movement objects without user_id, but models.py defines user_id as nullable=False. This breaks the seed functionality.",
+    "Consider: Should seed data be user-specific? If seed is for demo purposes, create a demo user and assign movements to that user."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_movements_auth.py"
+  ],
+  "success_rate": {
+    "backend": "100% (26/26 tests passed)",
+    "frontend": "Not tested (backend only requested)"
+  },
+  "test_credentials": "N/A - Firebase authentication cannot be automated. Tests verify 401 responses for missing/invalid tokens.",
+  "seed_data_creation": "BLOCKED - Seed endpoint fails due to missing user_id constraint",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Authentication module for movements is complete. All protected endpoints (GET/POST/PATCH/DELETE /api/v1/movements, GET /api/v1/kpis/summary) correctly return 401 without valid Firebase JWT. The /api/seed endpoint is broken and needs to be fixed to handle user_id requirement. Real authenticated flows cannot be tested automatically as they require valid Firebase Google Sign-In credentials.",
+  "authentication_testing_notes": {
+    "protected_endpoints": [
+      "GET/POST/PATCH/DELETE /api/v1/movements",
+      "GET /api/v1/kpis/summary",
+      "GET /api/v1/auth/me",
+      "POST /api/v1/auth/register"
+    ],
+    "public_endpoints": [
+      "GET /api/health",
+      "GET/POST /api/v1/business-units",
+      "GET/POST /api/v1/tags",
+      "POST /api/seed (broken)"
+    ],
+    "verification_method": "Tested 401 responses for no token, invalid token, and malformed token"
+  }
+}
