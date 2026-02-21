@@ -1,29 +1,37 @@
-from fastapi import FastAPI, APIRouter, Query, HTTPException
+from fastapi import FastAPI, APIRouter, Query, HTTPException, Depends
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, delete, update
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+from database import engine, get_db
+from models import Base, Movement, BusinessUnit, Tag
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / ".env")
 
 app = FastAPI(title="Suma API", version="0.1.0")
-
 api_router = APIRouter(prefix="/api")
 v1_router = APIRouter(prefix="/api/v1")
 
 
-# --- Pydantic Models ---
+# --- Startup: create tables ---
+
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logging.info("Database tables ready")
+
+
+# --- Pydantic schemas ---
 
 class MovementCreate(BaseModel):
     type: str
@@ -36,6 +44,7 @@ class MovementCreate(BaseModel):
     date: str
     tags: List[str] = []
 
+
 class MovementUpdate(BaseModel):
     type: Optional[str] = None
     amount: Optional[float] = None
@@ -46,8 +55,9 @@ class MovementUpdate(BaseModel):
     date: Optional[str] = None
     tags: Optional[List[str]] = None
 
+
 class MovementResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(from_attributes=True)
     id: str
     type: str
     amount: float
@@ -61,25 +71,30 @@ class MovementResponse(BaseModel):
     created_at: str
     updated_at: str
 
+
 class BusinessUnitCreate(BaseModel):
     name: str
     type: str = "other"
 
+
 class BusinessUnitResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(from_attributes=True)
     id: str
     name: str
     type: str
     created_at: str
 
+
 class TagCreate(BaseModel):
     name: str
 
+
 class TagResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(from_attributes=True)
     id: str
     name: str
     created_at: str
+
 
 class KPISummary(BaseModel):
     total_income: float
@@ -104,45 +119,51 @@ async def list_movements(
     type: Optional[str] = None,
     limit: int = Query(50, le=200),
     offset: int = 0,
+    db: AsyncSession = Depends(get_db),
 ):
-    query = {}
+    q = select(Movement)
     if status:
-        query["status"] = status
+        q = q.where(Movement.status == status)
     if type:
-        query["type"] = type
-    movements = await db.movements.find(query, {"_id": 0}).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
-    return movements
+        q = q.where(Movement.type == type)
+    q = q.order_by(Movement.created_at.desc()).offset(offset).limit(limit)
+    result = await db.execute(q)
+    return result.scalars().all()
 
 
 @v1_router.post("/movements", response_model=MovementResponse)
-async def create_movement(data: MovementCreate):
+async def create_movement(data: MovementCreate, db: AsyncSession = Depends(get_db)):
     now = datetime.now(timezone.utc).isoformat()
-    doc = {
-        "id": str(uuid.uuid4()),
+    mov = Movement(
+        id=str(uuid.uuid4()),
         **data.model_dump(),
-        "created_at": now,
-        "updated_at": now,
-    }
-    await db.movements.insert_one(doc)
-    doc.pop("_id", None)
-    return doc
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(mov)
+    await db.commit()
+    await db.refresh(mov)
+    return mov
 
 
 @v1_router.patch("/movements/{movement_id}", response_model=MovementResponse)
-async def update_movement(movement_id: str, data: MovementUpdate):
+async def update_movement(movement_id: str, data: MovementUpdate, db: AsyncSession = Depends(get_db)):
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await db.movements.update_one({"id": movement_id}, {"$set": updates})
-    doc = await db.movements.find_one({"id": movement_id}, {"_id": 0})
-    if not doc:
+    await db.execute(update(Movement).where(Movement.id == movement_id).values(**updates))
+    await db.commit()
+    result = await db.execute(select(Movement).where(Movement.id == movement_id))
+    mov = result.scalar_one_or_none()
+    if not mov:
         raise HTTPException(status_code=404, detail="Movement not found")
-    return doc
+    return mov
 
 
 @v1_router.delete("/movements/{movement_id}")
-async def delete_movement(movement_id: str):
-    result = await db.movements.delete_one({"id": movement_id})
-    if result.deleted_count == 0:
+async def delete_movement(movement_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(delete(Movement).where(Movement.id == movement_id))
+    await db.commit()
+    if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Movement not found")
     return {"deleted": True}
 
@@ -150,120 +171,111 @@ async def delete_movement(movement_id: str):
 # --- Business Units ---
 
 @v1_router.get("/business-units", response_model=List[BusinessUnitResponse])
-async def list_business_units():
-    units = await db.business_units.find({}, {"_id": 0}).to_list(100)
-    return units
+async def list_business_units(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(BusinessUnit))
+    return result.scalars().all()
 
 
 @v1_router.post("/business-units", response_model=BusinessUnitResponse)
-async def create_business_unit(data: BusinessUnitCreate):
+async def create_business_unit(data: BusinessUnitCreate, db: AsyncSession = Depends(get_db)):
     now = datetime.now(timezone.utc).isoformat()
-    doc = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": now}
-    await db.business_units.insert_one(doc)
-    doc.pop("_id", None)
-    return doc
+    unit = BusinessUnit(id=str(uuid.uuid4()), **data.model_dump(), created_at=now)
+    db.add(unit)
+    await db.commit()
+    await db.refresh(unit)
+    return unit
 
 
 # --- Tags ---
 
 @v1_router.get("/tags", response_model=List[TagResponse])
-async def list_tags():
-    tags = await db.tags.find({}, {"_id": 0}).to_list(100)
-    return tags
+async def list_tags(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Tag))
+    return result.scalars().all()
 
 
 @v1_router.post("/tags", response_model=TagResponse)
-async def create_tag(data: TagCreate):
+async def create_tag(data: TagCreate, db: AsyncSession = Depends(get_db)):
     now = datetime.now(timezone.utc).isoformat()
-    doc = {"id": str(uuid.uuid4()), "name": data.name, "created_at": now}
-    await db.tags.insert_one(doc)
-    doc.pop("_id", None)
-    return doc
+    tag = Tag(id=str(uuid.uuid4()), name=data.name, created_at=now)
+    db.add(tag)
+    await db.commit()
+    await db.refresh(tag)
+    return tag
 
 
 # --- KPIs ---
 
 @v1_router.get("/kpis/summary", response_model=KPISummary)
-async def kpi_summary():
-    pipeline_income = [{"$match": {"type": "income"}}, {"$group": {"_id": None, "total": {"$sum": "$amount"}}}]
-    pipeline_expense = [{"$match": {"type": "expense"}}, {"$group": {"_id": None, "total": {"$sum": "$amount"}}}]
+async def kpi_summary(db: AsyncSession = Depends(get_db)):
+    income = await db.execute(select(func.coalesce(func.sum(Movement.amount), 0)).where(Movement.type == "income"))
+    expense = await db.execute(select(func.coalesce(func.sum(Movement.amount), 0)).where(Movement.type == "expense"))
+    count = await db.execute(select(func.count()).select_from(Movement))
+    pending = await db.execute(select(func.count()).select_from(Movement).where(Movement.status == "pending"))
 
-    income_result = await db.movements.aggregate(pipeline_income).to_list(1)
-    expense_result = await db.movements.aggregate(pipeline_expense).to_list(1)
-
-    total_income = income_result[0]["total"] if income_result else 0
-    total_expense = expense_result[0]["total"] if expense_result else 0
-
-    count = await db.movements.count_documents({})
-    pending = await db.movements.count_documents({"status": "pending"})
+    total_income = float(income.scalar())
+    total_expense = float(expense.scalar())
 
     return {
         "total_income": total_income,
         "total_expense": total_expense,
         "balance": total_income - total_expense,
-        "movement_count": count,
-        "pending_count": pending,
+        "movement_count": count.scalar(),
+        "pending_count": pending.scalar(),
     }
 
 
 # --- Seed ---
 
 @api_router.post("/seed")
-async def seed_data():
-    count = await db.movements.count_documents({})
-    if count > 0:
-        return {"message": "Data already seeded", "movement_count": count}
+async def seed_data(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(func.count()).select_from(Movement))
+    if result.scalar() > 0:
+        cnt = (await db.execute(select(func.count()).select_from(Movement))).scalar()
+        return {"message": "Data already seeded", "movement_count": cnt}
 
     now = datetime.now(timezone.utc).isoformat()
 
+    u1_id, u2_id = str(uuid.uuid4()), str(uuid.uuid4())
     units = [
-        {"id": str(uuid.uuid4()), "name": "Sucursal Centro", "type": "branch", "created_at": now},
-        {"id": str(uuid.uuid4()), "name": "Feria del Agricultor", "type": "event", "created_at": now},
+        BusinessUnit(id=u1_id, name="Sucursal Centro", type="branch", created_at=now),
+        BusinessUnit(id=u2_id, name="Feria del Agricultor", type="event", created_at=now),
     ]
-    await db.business_units.insert_many([{**u} for u in units])
+    db.add_all(units)
 
     tags = [
-        {"id": str(uuid.uuid4()), "name": "SINPE", "created_at": now},
-        {"id": str(uuid.uuid4()), "name": "Efectivo", "created_at": now},
-        {"id": str(uuid.uuid4()), "name": "Proveedor", "created_at": now},
+        Tag(id=str(uuid.uuid4()), name="SINPE", created_at=now),
+        Tag(id=str(uuid.uuid4()), name="Efectivo", created_at=now),
+        Tag(id=str(uuid.uuid4()), name="Proveedor", created_at=now),
     ]
-    await db.tags.insert_many([{**t} for t in tags])
+    db.add_all(tags)
 
     movements = [
-        {
-            "id": str(uuid.uuid4()), "type": "income", "amount": 45000, "currency": "CRC",
-            "description": "Venta de cafe molido", "responsible": "Maria",
-            "business_unit_id": units[0]["id"], "status": "classified",
-            "date": "2026-01-15", "tags": ["SINPE"], "created_at": now, "updated_at": now,
-        },
-        {
-            "id": str(uuid.uuid4()), "type": "expense", "amount": 12000, "currency": "CRC",
-            "description": "Compra de bolsas", "responsible": None,
-            "business_unit_id": units[0]["id"], "status": "pending",
-            "date": "2026-01-16", "tags": ["Proveedor"], "created_at": now, "updated_at": now,
-        },
-        {
-            "id": str(uuid.uuid4()), "type": "income", "amount": 75000, "currency": "CRC",
-            "description": "Ventas feria sabado", "responsible": "Carlos",
-            "business_unit_id": units[1]["id"], "status": "pending",
-            "date": "2026-01-18", "tags": ["Efectivo"], "created_at": now, "updated_at": now,
-        },
-        {
-            "id": str(uuid.uuid4()), "type": "expense", "amount": 8500, "currency": "CRC",
-            "description": "Gasolina transporte", "responsible": "Carlos",
-            "business_unit_id": units[1]["id"], "status": "classified",
-            "date": "2026-01-18", "tags": ["Efectivo"], "created_at": now, "updated_at": now,
-        },
-        {
-            "id": str(uuid.uuid4()), "type": "income", "amount": 32000, "currency": "CRC",
-            "description": "Pedido especial empanadas", "responsible": "Maria",
-            "business_unit_id": None, "status": "pending",
-            "date": "2026-01-20", "tags": ["SINPE"], "created_at": now, "updated_at": now,
-        },
+        Movement(id=str(uuid.uuid4()), type="income", amount=45000, currency="CRC",
+                 description="Venta de cafe molido", responsible="Maria",
+                 business_unit_id=u1_id, status="classified",
+                 date="2026-01-15", tags=["SINPE"], created_at=now, updated_at=now),
+        Movement(id=str(uuid.uuid4()), type="expense", amount=12000, currency="CRC",
+                 description="Compra de bolsas", responsible=None,
+                 business_unit_id=u1_id, status="pending",
+                 date="2026-01-16", tags=["Proveedor"], created_at=now, updated_at=now),
+        Movement(id=str(uuid.uuid4()), type="income", amount=75000, currency="CRC",
+                 description="Ventas feria sabado", responsible="Carlos",
+                 business_unit_id=u2_id, status="pending",
+                 date="2026-01-18", tags=["Efectivo"], created_at=now, updated_at=now),
+        Movement(id=str(uuid.uuid4()), type="expense", amount=8500, currency="CRC",
+                 description="Gasolina transporte", responsible="Carlos",
+                 business_unit_id=u2_id, status="classified",
+                 date="2026-01-18", tags=["Efectivo"], created_at=now, updated_at=now),
+        Movement(id=str(uuid.uuid4()), type="income", amount=32000, currency="CRC",
+                 description="Pedido especial empanadas", responsible="Maria",
+                 business_unit_id=None, status="pending",
+                 date="2026-01-20", tags=["SINPE"], created_at=now, updated_at=now),
     ]
-    await db.movements.insert_many([{**m} for m in movements])
+    db.add_all(movements)
+    await db.commit()
 
-    return {"message": "Seed complete", "movements": len(movements), "units": len(units), "tags": len(tags)}
+    return {"message": "Seed complete", "movements": 5, "units": 2, "tags": 3}
 
 
 # --- Wire up ---
@@ -281,8 +293,3 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
-
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
