@@ -217,6 +217,11 @@ export default function PendientesScreen() {
           <View style={styles.list}>
             {movements.map((mov, i) => {
               const isIncome = mov.type === 'income';
+              const statusLabels = {
+                pending: 'Pendiente',
+                classified: 'Clasificado',
+                closed: 'Cerrado',
+              };
               return (
                 <Pressable
                   key={mov.id}
@@ -258,6 +263,7 @@ export default function PendientesScreen() {
                       <Text style={styles.cardMeta}>
                         {mov.date}
                         {mov.responsible ? ` \u00B7 ${mov.responsible}` : ''}
+                        {filter === 'all' && mov.status ? ` \u00B7 ${statusLabels[mov.status] || mov.status}` : ''}
                       </Text>
                     </View>
                   </View>
@@ -273,7 +279,9 @@ export default function PendientesScreen() {
                       {isIncome ? '+' : '-'}
                       {formatCRC(mov.amount)}
                     </Text>
-                    <Text style={styles.tapHint}>Tocar para clasificar</Text>
+                    <Text style={styles.tapHint}>
+                      {mov.status === 'pending' ? 'Tocar para clasificar' : 'Tocar para editar'}
+                    </Text>
                   </View>
                 </Pressable>
               );
