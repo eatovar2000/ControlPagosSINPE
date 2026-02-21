@@ -420,6 +420,101 @@ const styles = StyleSheet.create({
   cardAmount: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  cardRight: {
+    alignItems: 'flex-end',
     marginLeft: 8,
+  },
+  tapHint: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalMovementInfo: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalMovementDesc: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  modalMovementAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 12,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: colors.textPrimary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 20,
+  },
+  statusButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  statusBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  classifyBtn: {
+    backgroundColor: colors.primary,
+  },
+  closeBtn: {
+    backgroundColor: colors.secondary,
+  },
+  statusBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  cancelBtn: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    color: colors.textMuted,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
