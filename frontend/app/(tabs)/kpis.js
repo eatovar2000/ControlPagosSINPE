@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, API_URL } from '../../lib/theme';
 
 export default function KPIsScreen() {
@@ -36,7 +35,7 @@ export default function KPIsScreen() {
     }).format(amount);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.brand}>SUMA</Text>
         <Text style={styles.title}>KPIs</Text>
@@ -131,7 +130,7 @@ export default function KPIsScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

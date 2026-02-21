@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../../lib/theme';
+import AppHeader from '../../components/AppHeader';
 
 function TabIcon({ name, focused, isCenter }) {
   if (isCenter) {
@@ -27,15 +28,17 @@ function TabIcon({ name, focused, isCenter }) {
 
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: styles.tabLabel,
-      }}
-    >
+    <View style={styles.container}>
+      <AppHeader />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: styles.tabBar,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textMuted,
+          tabBarLabelStyle: styles.tabLabel,
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{
@@ -67,10 +70,15 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   tabBar: {
     backgroundColor: 'rgba(255,255,255,0.92)',
     borderTopColor: 'rgba(0,0,0,0.06)',

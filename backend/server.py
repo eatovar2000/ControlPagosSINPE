@@ -12,7 +12,8 @@ import uuid
 from datetime import datetime, timezone
 
 from database import engine, get_db
-from models import Base, Movement, BusinessUnit, Tag
+from models import Base, Movement, BusinessUnit, Tag, User
+from firebase_auth import get_current_user, get_optional_user, get_firebase_app
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -96,6 +97,28 @@ class TagResponse(BaseModel):
     created_at: str
 
 
+# --- Auth Schemas ---
+
+class UserRegisterRequest(BaseModel):
+    """Data from Firebase token to create/update user"""
+    display_name: Optional[str] = None
+    photo_url: Optional[str] = None
+
+
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    firebase_uid: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    display_name: Optional[str] = None
+    photo_url: Optional[str] = None
+    provider: Optional[str] = None
+    role: str
+    created_at: str
+    updated_at: str
+
+
 class KPISummary(BaseModel):
     total_income: float
     total_expense: float
@@ -108,7 +131,110 @@ class KPISummary(BaseModel):
 
 @api_router.get("/health")
 async def health_check():
-    return {"status": "ok", "app": "Suma", "version": "0.1.0"}
+    firebase_status = "configured" if get_firebase_app() else "not_configured"
+    return {
+        "status": "ok",
+        "app": "Suma",
+        "version": "0.1.0",
+        "firebase": firebase_status
+    }
+
+
+# --- Auth Endpoints ---
+
+@v1_router.post("/auth/register", response_model=UserResponse)
+async def register_or_get_user(
+    data: UserRegisterRequest,
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Register a new user or return existing user.
+    Called after successful Firebase authentication.
+    Uses Firebase token to extract user info.
+    """
+    firebase_uid = firebase_user.get("uid")
+    if not firebase_uid:
+        raise HTTPException(status_code=400, detail="Invalid Firebase token")
+
+    # Check if user exists
+    result = await db.execute(
+        select(User).where(User.firebase_uid == firebase_uid)
+    )
+    existing_user = result.scalar_one_or_none()
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    if existing_user:
+        # Update last login info
+        updates = {"updated_at": now}
+
+        # Update display_name if provided
+        if data.display_name:
+            updates["display_name"] = data.display_name
+        if data.photo_url:
+            updates["photo_url"] = data.photo_url
+
+        await db.execute(
+            update(User)
+            .where(User.firebase_uid == firebase_uid)
+            .values(**updates)
+        )
+        await db.commit()
+        await db.refresh(existing_user)
+        return existing_user
+
+    # Create new user
+    # Extract provider from Firebase token
+    provider = None
+    firebase_info = firebase_user.get("firebase", {})
+    sign_in_provider = firebase_info.get("sign_in_provider")
+    if sign_in_provider:
+        provider = sign_in_provider
+
+    new_user = User(
+        id=str(uuid.uuid4()),
+        firebase_uid=firebase_uid,
+        email=firebase_user.get("email"),
+        phone=firebase_user.get("phone_number"),
+        display_name=data.display_name or firebase_user.get("name"),
+        photo_url=data.photo_url or firebase_user.get("picture"),
+        provider=provider,
+        role="user",
+        created_at=now,
+        updated_at=now,
+    )
+
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+
+    logger.info(f"New user registered: {new_user.id} ({new_user.email or new_user.phone})")
+    return new_user
+
+
+@v1_router.get("/auth/me", response_model=UserResponse)
+async def get_current_user_profile(
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get current authenticated user's profile.
+    """
+    firebase_uid = firebase_user.get("uid")
+
+    result = await db.execute(
+        select(User).where(User.firebase_uid == firebase_uid)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found. Please register first."
+        )
+
+    return user
 
 
 # --- Movements ---

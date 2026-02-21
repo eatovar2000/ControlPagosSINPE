@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Pressable,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, API_URL } from '../../lib/theme';
 
 export default function PendientesScreen() {
@@ -38,7 +37,7 @@ export default function PendientesScreen() {
     }).format(amount);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.brand}>SUMA</Text>
         <Text style={styles.title}>Pendientes</Text>
@@ -121,7 +120,7 @@ export default function PendientesScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
