@@ -1,0 +1,133 @@
+import { Tabs } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
+import { colors } from '../../lib/theme';
+
+function TabIcon({ name, focused, isCenter }) {
+  if (isCenter) {
+    return (
+      <View style={[styles.centerBtn, focused && styles.centerBtnActive]}>
+        <Text style={styles.centerIcon}>+</Text>
+      </View>
+    );
+  }
+
+  const icons = {
+    Pendientes: focused ? '\u25CF' : '\u25CB',
+    KPIs: focused ? '\u25A0' : '\u25A1',
+  };
+
+  return (
+    <View style={styles.tabIconWrap}>
+      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>
+        {icons[name] || '\u25CB'}
+      </Text>
+    </View>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: styles.tabLabel,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Pendientes',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="Pendientes" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="registrar"
+        options={{
+          title: 'Registrar',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="Registrar" focused={focused} isCenter />
+          ),
+          tabBarLabel: () => (
+            <Text style={styles.centerLabel}>Registrar</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="kpis"
+        options={{
+          title: 'KPIs',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="KPIs" focused={focused} />
+          ),
+        }}
+      />
+    </Tabs>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderTopColor: 'rgba(0,0,0,0.06)',
+    borderTopWidth: 1,
+    height: 80,
+    paddingBottom: 8,
+    paddingTop: 8,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  tabIconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabIcon: {
+    fontSize: 20,
+    color: colors.textMuted,
+  },
+  tabIconActive: {
+    color: colors.primary,
+  },
+  centerBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -20,
+    shadowColor: colors.secondary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  centerBtnActive: {
+    backgroundColor: colors.secondaryDark,
+    transform: [{ scale: 1.05 }],
+  },
+  centerIcon: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: -2,
+  },
+  centerLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.textMuted,
+    letterSpacing: 0.5,
+  },
+});
