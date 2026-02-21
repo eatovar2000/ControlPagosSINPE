@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,28 +6,116 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
+  RefreshControl,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { colors, API_URL } from '../../lib/theme';
+import { useAuth } from '../../lib/AuthContext';
 
 export default function PendientesScreen() {
+  const { getAuthHeader, isAuthenticated } = useAuth();
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Modal state for claim/classify
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedMovement, setSelectedMovement] = useState(null);
+  const [responsibleName, setResponsibleName] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        await fetch(`${API_URL}/seed`, { method: 'POST' });
-        const res = await fetch(`${API_URL}/v1/movements?status=pending`);
-        const data = await res.json();
-        setMovements(data);
-      } catch (e) {
-        console.error('Error loading movements:', e);
-      } finally {
-        setLoading(false);
+  const loadMovements = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
+    setError(null);
+    
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch(`${API_URL}/v1/movements?status=pending`, {
+        headers: {
+          ...authHeader,
+        },
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) {
+          setError('Sesion expirada');
+          return;
+        }
+        throw new Error('Error al cargar movimientos');
       }
-    };
-    load();
-  }, []);
+      
+      const data = await res.json();
+      setMovements(data);
+    } catch (e) {
+      console.error('Error loading movements:', e);
+      setError('No se pudieron cargar los movimientos');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Reload on tab focus
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        loadMovements();
+      }
+    }, [isAuthenticated])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadMovements(false);
+  };
+
+  const openClaimModal = (movement) => {
+    setSelectedMovement(movement);
+    setResponsibleName(movement.responsible || '');
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setSelectedMovement(null);
+    setResponsibleName('');
+  };
+
+  const updateMovementStatus = async (newStatus) => {
+    if (!selectedMovement) return;
+    
+    setSaving(true);
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch(`${API_URL}/v1/movements/${selectedMovement.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader,
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          responsible: responsibleName.trim() || null,
+        }),
+      });
+      
+      if (!res.ok) {
+        throw new Error('Error al actualizar');
+      }
+      
+      closeModal();
+      loadMovements(false);
+    } catch (e) {
+      console.error('Error updating movement:', e);
+      Alert.alert('Error', 'No se pudo actualizar el movimiento');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const formatCRC = (amount) =>
     new Intl.NumberFormat('es-CR', {
@@ -38,7 +126,18 @@ export default function PendientesScreen() {
 
   return (
     <View style={styles.safe}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
         <Text style={styles.brand}>SUMA</Text>
         <Text style={styles.title}>Pendientes</Text>
         <Text style={styles.subtitle}>
@@ -50,11 +149,23 @@ export default function PendientesScreen() {
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
+        ) : error ? (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.errorIcon}>{'\u26A0'}</Text>
+            <Text style={styles.errorTitle}>Error</Text>
+            <Text style={styles.emptyText}>{error}</Text>
+            <Pressable style={styles.retryBtn} onPress={() => loadMovements()}>
+              <Text style={styles.retryBtnText}>Reintentar</Text>
+            </Pressable>
+          </View>
         ) : movements.length === 0 ? (
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyIcon}>{'\u2713'}</Text>
             <Text style={styles.emptyTitle}>Todo al dia</Text>
             <Text style={styles.emptyText}>No hay movimientos pendientes</Text>
+            <Text style={styles.emptyHint}>
+              Usa la pestana "Registrar" para agregar movimientos
+            </Text>
           </View>
         ) : (
           <View style={styles.list}>
@@ -68,6 +179,7 @@ export default function PendientesScreen() {
                     styles.card,
                     pressed && styles.cardPressed,
                   ]}
+                  onPress={() => openClaimModal(mov)}
                 >
                   <View style={styles.cardLeft}>
                     <View
@@ -95,7 +207,7 @@ export default function PendientesScreen() {
                     </View>
                     <View style={styles.cardInfo}>
                       <Text style={styles.cardTitle} numberOfLines={1}>
-                        {mov.description}
+                        {mov.description || 'Sin descripcion'}
                       </Text>
                       <Text style={styles.cardMeta}>
                         {mov.date}
@@ -103,22 +215,97 @@ export default function PendientesScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Text
-                    style={[
-                      styles.cardAmount,
-                      {
-                        color: isIncome ? colors.primary : colors.secondary,
-                      },
-                    ]}
-                  >
-                    {isIncome ? '+' : '-'}
-                    {formatCRC(mov.amount)}
-                  </Text>
+                  <View style={styles.cardRight}>
+                    <Text
+                      style={[
+                        styles.cardAmount,
+                        {
+                          color: isIncome ? colors.primary : colors.secondary,
+                        },
+                      ]}
+                    >
+                      {isIncome ? '+' : '-'}
+                      {formatCRC(mov.amount)}
+                    </Text>
+                    <Text style={styles.tapHint}>Tocar para clasificar</Text>
+                  </View>
                 </Pressable>
               );
             })}
           </View>
         )}
+
+        {/* Claim/Classify Modal */}
+        <Modal
+          visible={modalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={closeModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Clasificar Movimiento</Text>
+              
+              {selectedMovement && (
+                <View style={styles.modalMovementInfo}>
+                  <Text style={styles.modalMovementDesc}>
+                    {selectedMovement.description || 'Sin descripcion'}
+                  </Text>
+                  <Text style={[
+                    styles.modalMovementAmount,
+                    { color: selectedMovement.type === 'income' ? colors.primary : colors.secondary }
+                  ]}>
+                    {selectedMovement.type === 'income' ? '+' : '-'}
+                    {formatCRC(selectedMovement.amount)}
+                  </Text>
+                </View>
+              )}
+              
+              <Text style={styles.inputLabel}>Responsable (opcional)</Text>
+              <TextInput
+                style={styles.textInput}
+                value={responsibleName}
+                onChangeText={setResponsibleName}
+                placeholder="Nombre del responsable"
+                placeholderTextColor={colors.textMuted}
+                testID="responsible-input"
+              />
+              
+              <View style={styles.statusButtons}>
+                <Pressable
+                  style={[styles.statusBtn, styles.classifyBtn]}
+                  onPress={() => updateMovementStatus('classified')}
+                  disabled={saving}
+                  testID="classify-btn"
+                >
+                  <Text style={styles.statusBtnText}>
+                    {saving ? 'Guardando...' : 'Clasificar'}
+                  </Text>
+                </Pressable>
+                
+                <Pressable
+                  style={[styles.statusBtn, styles.closeBtn]}
+                  onPress={() => updateMovementStatus('closed')}
+                  disabled={saving}
+                  testID="close-btn"
+                >
+                  <Text style={styles.statusBtnText}>
+                    {saving ? 'Guardando...' : 'Cerrar'}
+                  </Text>
+                </Pressable>
+              </View>
+              
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={closeModal}
+                disabled={saving}
+                testID="cancel-modal-btn"
+              >
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </View>
   );
@@ -154,15 +341,43 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginBottom: 12,
   },
+  errorIcon: {
+    fontSize: 36,
+    color: colors.warning,
+    marginBottom: 12,
+  },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.textPrimary,
   },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.warning,
+  },
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  emptyHint: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 16,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  retryBtn: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: colors.primary,
+    borderRadius: 20,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   list: { gap: 12 },
   card: {
@@ -205,6 +420,101 @@ const styles = StyleSheet.create({
   cardAmount: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  cardRight: {
+    alignItems: 'flex-end',
     marginLeft: 8,
+  },
+  tapHint: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalMovementInfo: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalMovementDesc: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  modalMovementAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 12,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: colors.textPrimary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 20,
+  },
+  statusButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  statusBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  classifyBtn: {
+    backgroundColor: colors.primary,
+  },
+  closeBtn: {
+    backgroundColor: colors.secondary,
+  },
+  statusBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  cancelBtn: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    color: colors.textMuted,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

@@ -31,6 +31,7 @@ class Movement(Base):
     __tablename__ = "movements"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, nullable=False, index=True)  # Owner of the movement
     type = Column(String, nullable=False)  # income | expense
     amount = Column(Float, nullable=False)
     currency = Column(String, default="CRC")
