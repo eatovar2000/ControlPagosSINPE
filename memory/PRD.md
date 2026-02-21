@@ -128,6 +128,8 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 ## Prioritized Backlog
 
 ### P0 — COMPLETADO ✓
+- [x] FASE 8: KPIs con gráficos torta (filtros período, breakdown type/responsible)
+- [x] FASE 7.1: UX Minimalista (filtro Pendientes/Todos, iconos mejorados)
 - [x] FASE 7: Pendientes + Claim (status field, UI para clasificar)
 - [x] Módulo Movimientos conectado al backend
 - [x] Autenticación Firebase completa
