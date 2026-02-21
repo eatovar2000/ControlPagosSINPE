@@ -124,9 +124,9 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 - Export CSV, dark mode
 
 ## Testing Status
-- Backend: 17/17 tests passed (100%)
-- Frontend: Login UI verified (100%)
-- Test reports: `/app/test_reports/iteration_3.json`
+- Backend FASE 7: 69/70 tests passed (99%)
+- Test reports: `/app/test_reports/iteration_5.json`
+- Issue conocido: `/api/seed` roto (no afecta funcionalidad principal)
 
 ## Environment Variables
 ### Backend (.env)
