@@ -1,31 +1,68 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
+  Pressable,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { colors, API_URL } from '../../lib/theme';
+import { useAuth } from '../../lib/AuthContext';
 
 export default function KPIsScreen() {
+  const { getAuthHeader, isAuthenticated } = useAuth();
   const [kpis, setKpis] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch(`${API_URL}/v1/kpis/summary`);
-        const data = await res.json();
-        setKpis(data);
-      } catch (e) {
-        console.error('Error loading KPIs:', e);
-      } finally {
-        setLoading(false);
+  const loadKPIs = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
+    setError(null);
+    
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch(`${API_URL}/v1/kpis/summary`, {
+        headers: {
+          ...authHeader,
+        },
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) {
+          setError('Sesion expirada');
+          return;
+        }
+        throw new Error('Error al cargar KPIs');
       }
-    };
-    load();
-  }, []);
+      
+      const data = await res.json();
+      setKpis(data);
+    } catch (e) {
+      console.error('Error loading KPIs:', e);
+      setError('No se pudieron cargar los KPIs');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Reload on tab focus
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        loadKPIs();
+      }
+    }, [isAuthenticated])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadKPIs(false);
+  };
 
   const formatCRC = (amount) =>
     new Intl.NumberFormat('es-CR', {
@@ -36,7 +73,18 @@ export default function KPIsScreen() {
 
   return (
     <View style={styles.safe}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
         <Text style={styles.brand}>SUMA</Text>
         <Text style={styles.title}>KPIs</Text>
         <Text style={styles.subtitle}>Resumen de tu negocio</Text>
@@ -44,6 +92,15 @@ export default function KPIsScreen() {
         {loading ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : error ? (
+          <View style={styles.errorWrap}>
+            <Text style={styles.errorIcon}>{'\u26A0'}</Text>
+            <Text style={styles.errorTitle}>Error</Text>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable style={styles.retryBtn} onPress={() => loadKPIs()}>
+              <Text style={styles.retryBtnText}>Reintentar</Text>
+            </Pressable>
           </View>
         ) : kpis ? (
           <View style={styles.cards}>
@@ -57,7 +114,7 @@ export default function KPIsScreen() {
                 {formatCRC(kpis.balance)}
               </Text>
               <Text style={styles.balanceMeta}>
-                {kpis.movement_count} movimientos totales
+                {kpis.movement_count} movimiento{kpis.movement_count !== 1 ? 's' : ''} total{kpis.movement_count !== 1 ? 'es' : ''}
               </Text>
             </View>
 
@@ -121,6 +178,16 @@ export default function KPIsScreen() {
               </View>
               <Text style={styles.pendingCount}>{kpis.pending_count}</Text>
             </View>
+
+            {/* Empty state hint */}
+            {kpis.movement_count === 0 && (
+              <View style={styles.hintCard}>
+                <Text style={styles.hintIcon}>{'\u{1F4A1}'}</Text>
+                <Text style={styles.hintText}>
+                  Comienza registrando tu primer movimiento en la pestana "Registrar"
+                </Text>
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.loadingWrap}>
@@ -158,7 +225,29 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   loadingWrap: { paddingTop: 60, alignItems: 'center' },
-  errorText: { fontSize: 15, color: colors.textSecondary },
+  errorWrap: { alignItems: 'center', paddingTop: 60 },
+  errorIcon: {
+    fontSize: 36,
+    color: colors.warning,
+    marginBottom: 12,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.warning,
+  },
+  errorText: { fontSize: 15, color: colors.textSecondary, marginTop: 4 },
+  retryBtn: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: colors.primary,
+    borderRadius: 20,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
   cards: { gap: 14 },
   balanceCard: {
     backgroundColor: colors.primary,
@@ -271,5 +360,20 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '800',
     color: colors.warning,
+  },
+  hintCard: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: 16,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hintIcon: { fontSize: 24 },
+  hintText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.primary,
+    lineHeight: 20,
   },
 });
