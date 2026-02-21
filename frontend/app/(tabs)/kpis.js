@@ -141,36 +141,17 @@ export default function KPIsScreen() {
     }).format(amount);
 
   const renderPieChartType = () => {
-    if (!isWeb || !kpis?.breakdown_type?.length) return null;
+    if (!kpis?.breakdown_type?.length) return null;
     
     return (
       <View style={styles.chartCard} testID="chart-type">
         <Text style={styles.chartTitle}>Ingresos vs Gastos</Text>
         <View style={styles.chartContainer}>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie
-                data={kpis.breakdown_type}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={2}
-                dataKey="value"
-                nameKey="name"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
-              >
-                {kpis.breakdown_type.map((entry, index) => (
-                  <Cell key={`cell-type-${index}`} fill={COLORS_TYPE[index % COLORS_TYPE.length]} />
-                ))}
-              </Pie>
-              <Tooltip 
-                formatter={(value) => formatCRC(value)}
-                contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <SimplePieChart 
+            data={kpis.breakdown_type} 
+            colors={COLORS_TYPE}
+            size={180}
+          />
         </View>
         <View style={styles.legendRow}>
           {kpis.breakdown_type.map((item, idx) => (
@@ -185,36 +166,17 @@ export default function KPIsScreen() {
   };
 
   const renderPieChartResponsible = () => {
-    if (!isWeb || !kpis?.breakdown_responsible?.length) return null;
+    if (!kpis?.breakdown_responsible?.length) return null;
     
     return (
       <View style={styles.chartCard} testID="chart-responsible">
         <Text style={styles.chartTitle}>Ingresos por Responsable</Text>
         <View style={styles.chartContainer}>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie
-                data={kpis.breakdown_responsible}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={2}
-                dataKey="value"
-                nameKey="name"
-                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
-              >
-                {kpis.breakdown_responsible.map((entry, index) => (
-                  <Cell key={`cell-resp-${index}`} fill={COLORS_RESPONSIBLE[index % COLORS_RESPONSIBLE.length]} />
-                ))}
-              </Pie>
-              <Tooltip 
-                formatter={(value) => formatCRC(value)}
-                contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <SimplePieChart 
+            data={kpis.breakdown_responsible} 
+            colors={COLORS_RESPONSIBLE}
+            size={180}
+          />
         </View>
         <View style={styles.legendWrap}>
           {kpis.breakdown_responsible.map((item, idx) => (
