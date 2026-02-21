@@ -128,6 +128,18 @@ class KPISummary(BaseModel):
     pending_count: int
 
 
+class BreakdownItem(BaseModel):
+    name: str
+    value: float
+
+
+class KPISummaryV2(BaseModel):
+    """Extended KPI summary with breakdowns for charts"""
+    totals: dict  # income_total, expense_total, balance
+    breakdown_type: List[BreakdownItem]  # income vs expense
+    breakdown_responsible: List[BreakdownItem]  # Top 6 + "Otros" for income by responsible
+
+
 # --- Health ---
 
 @api_router.get("/health")
