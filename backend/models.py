@@ -8,6 +8,25 @@ class Base(DeclarativeBase):
     pass
 
 
+class User(Base):
+    """
+    User model - created on first Firebase authentication.
+    Links Firebase UID to local user data.
+    """
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    firebase_uid = Column(String, unique=True, nullable=False, index=True)
+    email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    display_name = Column(String, nullable=True)
+    photo_url = Column(String, nullable=True)
+    provider = Column(String, nullable=True)  # google.com, phone, etc.
+    role = Column(String, default="user")  # user, admin (base roles for future RBAC)
+    created_at = Column(String, nullable=False)
+    updated_at = Column(String, nullable=False)
+
+
 class Movement(Base):
     __tablename__ = "movements"
 
