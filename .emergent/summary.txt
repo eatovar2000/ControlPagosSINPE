@@ -1,0 +1,132 @@
+<analysis>**original_problem_statement:**
+The user requested an architectural plan for a multi-platform application (PWA, Android, iOS) built from a single codebase. The application is intended for small entrepreneurs in Costa Rica to track business income and expenses.
+
+**PRODUCT REQUIREMENTS:**
+*   **Frontend:** A single codebase using Expo (React Native + React Native Web) to generate a PWA, iOS app, and Android app.
+*   **Backend:** A modular API built with Python and FastAPI.
+*   **Persistence:** PostgreSQL database managed with SQLAlchemy and Alembic for migrations.
+*   **Authentication:** Firebase Auth for Google Sign-In and SMS OTP.
+*   **Core Features:** A minimal UI with three main tabs (Pendientes, Registrar, KPIs). Functionality to be built in modules: Auth, Business Units, Movements, KPIs.
+*   **Exportability:** The project must be fully exportable to GitHub with no vendor lock-in.
+
+**User's preferred language**: Spanish. The next agent MUST respond in Spanish.
+
+**what currently exists?**
+A full-stack application with a FastAPI backend, PostgreSQL database, and an Expo (React Native Web) frontend. The P0 task, Authentication, has been implemented.
+*   **Backend:** The FastAPI server is running with SQLAlchemy and Alembic for database management. It includes a complete Firebase Authentication module that validates JWTs from the frontend. The Firebase Admin SDK is configured securely via an environment variable ().
+*   **Frontend:** The Expo application runs as a PWA and features a complete authentication flow. A login screen provides Continue with Google functionality. After login, users are directed to a tab-based interface with a header showing their display name and a logout button. Routes are protected, requiring authentication.
+*   **Database:** A PostgreSQL instance is running. The schema includes tables for , , , and , all created and managed by Alembic migrations.
+*   **Authentication:** Google Sign-In is fully functional for the web app. The SMS OTP flow is implemented but has been disabled in the UI at the user's request, as it requires enabling billing on their Firebase project.
+
+**Last working item**:
+*   **Last item agent was working:** The user identified that the SMS OTP login was failing with a Firebase  error. The agent was instructed to disable the SMS login option on the UI and display a message informing the user that billing is required for that feature.
+*   **Status:** COMPLETED
+*   **Agent Testing Done:** Y (The agent verified the UI change with the .)
+*   **User Testing Done:** Y (The change was made based on the user's direct feedback and request.)
+
+**All Pending/In progress Issue list**:
+There are no pending issues.
+
+**In progress Task List**:
+There are no tasks currently in progress.
+
+**Upcoming and Future Tasks**
+
+**Upcoming Tasks:**
+*   **P0: Implement Business Units & RBAC Module:**
+    *   Implement full CRUD (Create, Read, Update, Delete) API endpoints for  in the backend.
+    *   Create the corresponding frontend screens to manage business units.
+    *   The  model now has a  field; basic Role-Based Access Control logic can be started.
+*   **P1: Implement Movements Module:**
+    *   Expand the existing  CRUD to link movements to users and business units.
+*   **P2: Implement KPIs Module:**
+    *   Build the backend logic for the  endpoint.
+    *   Create the KPI dashboard UI on the frontend.
+
+**Future Tasks:**
+*   **Enable SMS OTP:** Re-enable the SMS login button on the frontend once the user confirms they have activated billing on their Firebase project.
+*   **Native Build Configuration:** Fully configure  (, , icons) and integrate the  and  files to enable native Android and iOS builds via EAS.
+*   **PWA Enhancements:** Implement a service worker for offline caching.
+*   **Polish Features:** Add push notifications, CSV data export, and dark mode.
+
+**Completed work in this session**
+*   **PostgreSQL Environment Restoration:** Diagnosed that PostgreSQL was not running in the forked environment, installed the service, created the database/user, and successfully ran all Alembic migrations to restore the required schema.
+*   **Firebase Authentication Module (P0):**
+    *   **Backend:** Implemented a secure authentication module using the Firebase Admin SDK. This included creating a  model, Alembic migrations, a middleware for token verification, and endpoints for user registration () and data retrieval ().
+    *   **Frontend:** Built the entire login flow, including a new  screen, an  for global state management, protected routes, and a  component with user details and a logout button.
+*   **User-Requested UI Update:** Disabled the SMS login button and added an informational message about the Firebase billing requirement, as per the user's direct instructions.
+*   **Testing:** Successfully validated the entire authentication flow using the .
+
+**Earlier issues found/mentioned but not fixed**
+None.
+
+**Known issue recurrence from previous fork**
+*   **Issue recurrence in previous fork:** An initial incorrect implementation used React+MongoDB instead of the requested Expo+PostgreSQL.
+*   **Recurrence count:** 1
+*   **Status:** RESOLVED. The application was rebuilt on the correct stack. The current agent successfully maintained this stack, even when faced with a missing PostgreSQL service, by restoring it instead of switching technologies.
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+*   **Frontend:** Expo, React Native, React Native Web, TypeScript, Expo Router
+*   **Backend:** FastAPI, Python, PostgreSQL, SQLAlchemy (async), Alembic
+*   **Authentication:** Firebase Authentication (Google Sign-In), JWT validation. Secure credential handling via environment variables.
+*   **Architecture:** Single-codebase frontend (PWA), modular REST API, relational database.
+
+**key DB schema**
+*   **users:** , , , , , , , 
+*   **movements:** , , , , Sat Feb 21 06:02:37 UTC 2026, 
+*   Other tables (, ) exist but are not yet used.
+
+**All files of reference**
+*   : The core of the backend authentication logic.
+*   : The global state manager for authentication on the client.
+*   : The component for the login screen.
+*   : The layout for the main application tabs, which now includes the .
+*   : Documents the required  environment variable.
+*   : Contains the public Firebase configuration keys for the web app.
+
+**key api endpoints**
+*   : (Protected) Creates or retrieves a user in the local database after successful Firebase authentication.
+*   : (Protected) Fetches the current authenticated user's data from the local database.
+*   : Retrieves a list of all movements.
+*   : Populates the database with initial sample data.
+
+**Critical Info for New Agent**
+*   **Environment Services:** The PostgreSQL service was not running in this fork and had to be manually installed and configured. **Always verify that essential services like PostgreSQL are running () before starting development.**
+*   **Firebase Credentials:** The backend is configured to use the  environment variable, which holds the entire service account JSON as a string. Do not look for a physical file.
+*   **SMS OTP is intentionally disabled.** Do not attempt to re-enable it or work on it unless specifically requested by the user. The next task is the Business Units module.
+
+**documents and test reports created in this job**
+*   
+*    (Updated)
+
+**Last 10 User Messages and any pending HUMAN messages**
+10. User requests to disable SMS login due to  error and add a message. **Status: COMPLETED**
+9.  Agent confirms implementation and verifies with a screenshot. **Status: COMPLETED**
+8.  User provides  content via the  command. **Status: COMPLETED**
+7.  Agent confirms the environment variable is set and restarts the backend. **Status: COMPLETED**
+6.  User asks the agent to diagnose and fix the PostgreSQL connection issue. **Status: COMPLETED**
+5.  Agent correctly identifies that PostgreSQL is not installed in the environment. **Status: COMPLETED**
+4.  Agent installs, configures, and starts the PostgreSQL service. **Status: COMPLETED**
+3.  Agent runs Alembic migrations and seeds the database successfully. **Status: COMPLETED**
+2.  User provides their Firebase project configuration ( object). **Status: COMPLETED**
+1.  User asks for step-by-step guidance on creating the Firebase project. **Status: COMPLETED**
+
+**Project Health Check:**
+*   **Working:** The full-stack application with Google authentication for the web version.
+*   **Broken:** Nothing is broken.
+*   **Mocked:** The SMS login flow is intentionally disabled in the UI. The Business Units, Movements, and KPIs modules are placeholders.
+
+**3rd Party Integrations**
+*   **PostgreSQL:** Active and configured.
+*   **Firebase Authentication:** Active for Google Sign-In. Does **not** use the Emergent LLM Key.
+
+**Testing status**
+*   **Testing agent used after significant changes:** YES,  was used to validate the authentication module and passed all tests.
+*   **Test files created:** 
+*   **Known regressions:** None.
+
+**What agent forgot to execute**
+The agent performed all tasks correctly and efficiently. A significant achievement was diagnosing and restoring the PostgreSQL environment from scratch, strictly adhering to the user's architectural requirements without attempting to switch technologies.</analysis>
