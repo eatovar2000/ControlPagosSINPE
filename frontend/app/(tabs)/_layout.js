@@ -70,10 +70,15 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   tabBar: {
     backgroundColor: 'rgba(255,255,255,0.92)',
     borderTopColor: 'rgba(0,0,0,0.06)',
