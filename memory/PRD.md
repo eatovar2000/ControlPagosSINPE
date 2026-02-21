@@ -28,6 +28,18 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 
 ## What's Been Implemented
 
+### 2026-02-21 — FASE 8: KPIs con Gráficos Torta
+- [x] Backend: GET /api/v1/kpis/summary con filtros `period=today|week|month`
+- [x] Respuesta estructurada: `totals` (income_total, expense_total, balance)
+- [x] `breakdown_type`: array con Ingresos vs Gastos para gráfico torta
+- [x] `breakdown_responsible`: Top 6 responsables + "Otros", null/empty => "Sin responsable"
+- [x] Filtrado por fecha según período (hoy, semana desde lunes, mes desde día 1)
+- [x] Frontend: Tab KPIs con selector Hoy/Semana/Mes (default Hoy)
+- [x] 3 cards: Balance, Ingresos (verde), Gastos (rojo)
+- [x] 2 gráficos torta SVG: por tipo y por responsable
+- [x] SimplePieChart: implementación SVG custom (sin dependencias externas)
+- [x] Testing: 10/10 backend tests passed (100%), código frontend verificado
+
 ### 2026-02-21 — FASE 7.1: UX Minimalista
 - [x] Selector "Mostrar: Pendientes | Todos" en tab Movimientos
 - [x] Default siempre a "Pendientes" al abrir la app (no recuerda selección)
