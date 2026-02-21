@@ -410,14 +410,40 @@ async def create_tag(data: TagCreate, db: AsyncSession = Depends(get_db)):
     return tag
 
 
-# --- KPIs ---
+# --- KPIs (Protected - user-specific) ---
 
 @v1_router.get("/kpis/summary", response_model=KPISummary)
-async def kpi_summary(db: AsyncSession = Depends(get_db)):
-    income = await db.execute(select(func.coalesce(func.sum(Movement.amount), 0)).where(Movement.type == "income"))
-    expense = await db.execute(select(func.coalesce(func.sum(Movement.amount), 0)).where(Movement.type == "expense"))
-    count = await db.execute(select(func.count()).select_from(Movement))
-    pending = await db.execute(select(func.count()).select_from(Movement).where(Movement.status == "pending"))
+async def kpi_summary(
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get KPI summary for the authenticated user's movements"""
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
+    income = await db.execute(
+        select(func.coalesce(func.sum(Movement.amount), 0))
+        .where(Movement.user_id == user_id, Movement.type == "income")
+    )
+    expense = await db.execute(
+        select(func.coalesce(func.sum(Movement.amount), 0))
+        .where(Movement.user_id == user_id, Movement.type == "expense")
+    )
+    count = await db.execute(
+        select(func.count())
+        .select_from(Movement)
+        .where(Movement.user_id == user_id)
+    )
+    pending = await db.execute(
+        select(func.count())
+        .select_from(Movement)
+        .where(Movement.user_id == user_id, Movement.status == "pending")
+    )
 
     total_income = float(income.scalar())
     total_expense = float(expense.scalar())
