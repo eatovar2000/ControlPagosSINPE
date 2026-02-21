@@ -563,4 +563,40 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  // Filter styles
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  filterLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginRight: 12,
+  },
+  filterPills: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterPill: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  filterPillTextActive: {
+    color: '#FFFFFF',
+  },
 });
