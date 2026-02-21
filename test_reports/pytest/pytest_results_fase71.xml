@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="3" failures="0" skipped="0" tests="3" time="0.141" timestamp="2026-02-21T15:07:02.259586+00:00" hostname="agent-env-523c52e0-e89b-45c4-ba88-8608513d58bd"><testcase classname="" name="tests.test_movements_auth" time="0.000"><error message="collection failure">tests/test_movements_auth.py:20: in &lt;module&gt;
+    raise RuntimeError("REACT_APP_BACKEND_URL environment variable must be set")
+E   RuntimeError: REACT_APP_BACKEND_URL environment variable must be set</error></testcase><testcase classname="" name="tests.test_movements_fase7" time="0.000"><error message="collection failure">tests/test_movements_fase7.py:24: in &lt;module&gt;
+    raise RuntimeError("REACT_APP_BACKEND_URL environment variable must be set")
+E   RuntimeError: REACT_APP_BACKEND_URL environment variable must be set</error></testcase><testcase classname="" name="tests.test_suma_api" time="0.000"><error message="collection failure">tests/test_suma_api.py:15: in &lt;module&gt;
+    raise RuntimeError("REACT_APP_BACKEND_URL environment variable must be set")
+E   RuntimeError: REACT_APP_BACKEND_URL environment variable must be set</error></testcase></testsuite></testsuites>
