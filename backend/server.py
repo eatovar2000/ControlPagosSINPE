@@ -425,12 +425,27 @@ async def create_tag(data: TagCreate, db: AsyncSession = Depends(get_db)):
 
 # --- KPIs (Protected - user-specific) ---
 
-@v1_router.get("/kpis/summary", response_model=KPISummary)
+def get_date_filter(period: str):
+    """Return start date for period filter"""
+    from datetime import date, timedelta
+    today = date.today()
+    if period == "today":
+        return today.isoformat()
+    elif period == "week":
+        start = today - timedelta(days=today.weekday())  # Monday of current week
+        return start.isoformat()
+    elif period == "month":
+        return today.replace(day=1).isoformat()
+    return None  # No filter
+
+
+@v1_router.get("/kpis/summary", response_model=KPISummaryV2)
 async def kpi_summary(
+    period: Literal["today", "week", "month"] = "today",
     firebase_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get KPI summary for the authenticated user's movements"""
+    """Get KPI summary with breakdowns for the authenticated user's movements"""
     firebase_uid = firebase_user.get("uid")
     result = await db.execute(
         select(User.id).where(User.firebase_uid == firebase_uid)
@@ -439,34 +454,65 @@ async def kpi_summary(
     if not user_id:
         raise HTTPException(status_code=404, detail="User not registered")
     
-    income = await db.execute(
+    # Base query with date filter
+    date_start = get_date_filter(period)
+    base_filter = [Movement.user_id == user_id]
+    if date_start:
+        base_filter.append(Movement.date >= date_start)
+    
+    # Total income
+    income_result = await db.execute(
         select(func.coalesce(func.sum(Movement.amount), 0))
-        .where(Movement.user_id == user_id, Movement.type == "income")
+        .where(*base_filter, Movement.type == "income")
     )
-    expense = await db.execute(
+    total_income = float(income_result.scalar())
+    
+    # Total expense
+    expense_result = await db.execute(
         select(func.coalesce(func.sum(Movement.amount), 0))
-        .where(Movement.user_id == user_id, Movement.type == "expense")
+        .where(*base_filter, Movement.type == "expense")
     )
-    count = await db.execute(
-        select(func.count())
-        .select_from(Movement)
-        .where(Movement.user_id == user_id)
+    total_expense = float(expense_result.scalar())
+    
+    # Breakdown by type (for pie chart)
+    breakdown_type = []
+    if total_income > 0:
+        breakdown_type.append({"name": "Ingresos", "value": total_income})
+    if total_expense > 0:
+        breakdown_type.append({"name": "Gastos", "value": total_expense})
+    
+    # Breakdown by responsible (income only, top 6 + "Otros")
+    responsible_query = await db.execute(
+        select(
+            func.coalesce(Movement.responsible, '').label('resp'),
+            func.sum(Movement.amount).label('total')
+        )
+        .where(*base_filter, Movement.type == "income")
+        .group_by(Movement.responsible)
+        .order_by(func.sum(Movement.amount).desc())
     )
-    pending = await db.execute(
-        select(func.count())
-        .select_from(Movement)
-        .where(Movement.user_id == user_id, Movement.status == "pending")
-    )
-
-    total_income = float(income.scalar())
-    total_expense = float(expense.scalar())
-
+    responsible_rows = responsible_query.all()
+    
+    breakdown_responsible = []
+    otros_total = 0.0
+    for i, row in enumerate(responsible_rows):
+        resp_name = row.resp if row.resp else "Sin responsable"
+        if i < 6:
+            breakdown_responsible.append({"name": resp_name, "value": float(row.total)})
+        else:
+            otros_total += float(row.total)
+    
+    if otros_total > 0:
+        breakdown_responsible.append({"name": "Otros", "value": otros_total})
+    
     return {
-        "total_income": total_income,
-        "total_expense": total_expense,
-        "balance": total_income - total_expense,
-        "movement_count": count.scalar(),
-        "pending_count": pending.scalar(),
+        "totals": {
+            "income_total": total_income,
+            "expense_total": total_expense,
+            "balance": total_income - total_expense,
+        },
+        "breakdown_type": breakdown_type,
+        "breakdown_responsible": breakdown_responsible,
     }
 
 
