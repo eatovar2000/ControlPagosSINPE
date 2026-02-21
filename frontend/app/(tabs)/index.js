@@ -73,6 +73,50 @@ export default function PendientesScreen() {
     loadMovements(false);
   };
 
+  const openClaimModal = (movement) => {
+    setSelectedMovement(movement);
+    setResponsibleName(movement.responsible || '');
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setSelectedMovement(null);
+    setResponsibleName('');
+  };
+
+  const updateMovementStatus = async (newStatus) => {
+    if (!selectedMovement) return;
+    
+    setSaving(true);
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch(`${API_URL}/v1/movements/${selectedMovement.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader,
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          responsible: responsibleName.trim() || null,
+        }),
+      });
+      
+      if (!res.ok) {
+        throw new Error('Error al actualizar');
+      }
+      
+      closeModal();
+      loadMovements(false);
+    } catch (e) {
+      console.error('Error updating movement:', e);
+      Alert.alert('Error', 'No se pudo actualizar el movimiento');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const formatCRC = (amount) =>
     new Intl.NumberFormat('es-CR', {
       style: 'currency',
