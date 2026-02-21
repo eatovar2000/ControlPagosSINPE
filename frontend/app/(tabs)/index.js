@@ -179,6 +179,7 @@ export default function PendientesScreen() {
                     styles.card,
                     pressed && styles.cardPressed,
                   ]}
+                  onPress={() => openClaimModal(mov)}
                 >
                   <View style={styles.cardLeft}>
                     <View
@@ -214,22 +215,97 @@ export default function PendientesScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Text
-                    style={[
-                      styles.cardAmount,
-                      {
-                        color: isIncome ? colors.primary : colors.secondary,
-                      },
-                    ]}
-                  >
-                    {isIncome ? '+' : '-'}
-                    {formatCRC(mov.amount)}
-                  </Text>
+                  <View style={styles.cardRight}>
+                    <Text
+                      style={[
+                        styles.cardAmount,
+                        {
+                          color: isIncome ? colors.primary : colors.secondary,
+                        },
+                      ]}
+                    >
+                      {isIncome ? '+' : '-'}
+                      {formatCRC(mov.amount)}
+                    </Text>
+                    <Text style={styles.tapHint}>Tocar para clasificar</Text>
+                  </View>
                 </Pressable>
               );
             })}
           </View>
         )}
+
+        {/* Claim/Classify Modal */}
+        <Modal
+          visible={modalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={closeModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Clasificar Movimiento</Text>
+              
+              {selectedMovement && (
+                <View style={styles.modalMovementInfo}>
+                  <Text style={styles.modalMovementDesc}>
+                    {selectedMovement.description || 'Sin descripcion'}
+                  </Text>
+                  <Text style={[
+                    styles.modalMovementAmount,
+                    { color: selectedMovement.type === 'income' ? colors.primary : colors.secondary }
+                  ]}>
+                    {selectedMovement.type === 'income' ? '+' : '-'}
+                    {formatCRC(selectedMovement.amount)}
+                  </Text>
+                </View>
+              )}
+              
+              <Text style={styles.inputLabel}>Responsable (opcional)</Text>
+              <TextInput
+                style={styles.textInput}
+                value={responsibleName}
+                onChangeText={setResponsibleName}
+                placeholder="Nombre del responsable"
+                placeholderTextColor={colors.textMuted}
+                testID="responsible-input"
+              />
+              
+              <View style={styles.statusButtons}>
+                <Pressable
+                  style={[styles.statusBtn, styles.classifyBtn]}
+                  onPress={() => updateMovementStatus('classified')}
+                  disabled={saving}
+                  testID="classify-btn"
+                >
+                  <Text style={styles.statusBtnText}>
+                    {saving ? 'Guardando...' : 'Clasificar'}
+                  </Text>
+                </Pressable>
+                
+                <Pressable
+                  style={[styles.statusBtn, styles.closeBtn]}
+                  onPress={() => updateMovementStatus('closed')}
+                  disabled={saving}
+                  testID="close-btn"
+                >
+                  <Text style={styles.statusBtnText}>
+                    {saving ? 'Guardando...' : 'Cerrar'}
+                  </Text>
+                </Pressable>
+              </View>
+              
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={closeModal}
+                disabled={saving}
+                testID="cancel-modal-btn"
+              >
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </View>
   );
