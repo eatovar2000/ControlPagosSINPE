@@ -1,0 +1,196 @@
+{
+  "brand_identity": {
+    "app_name": "Suma",
+    "tagline": "Tu negocio, en orden.",
+    "mission": "Empower Costa Rican micro-entrepreneurs with a simple, trustworthy financial tool.",
+    "emotional_tone": "Trustworthy, approachable, organized, natural, professional.",
+    "archetype": "The Organic & Earthy (Archetype 1) + The Performance Pro (Archetype 2 - Simplified)",
+    "target_audience": "Small business owners (pulperías, sodas, independent vendors) in Costa Rica."
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Manrope",
+      "weights": ["600", "700", "800"],
+      "usage": "Use for all page titles, section headers, and KPI values.",
+      "letter_spacing": "tracking-tight"
+    },
+    "body": {
+      "font_family": "IBM Plex Sans",
+      "weights": ["400", "500"],
+      "usage": "Use for lists, forms, labels, and descriptions.",
+      "letter_spacing": "tracking-normal"
+    },
+    "scale": {
+      "h1": "text-3xl md:text-4xl font-bold tracking-tight text-primary-900",
+      "h2": "text-2xl font-bold tracking-tight text-primary-800",
+      "h3": "text-xl font-semibold text-primary-800",
+      "body_lg": "text-lg font-medium text-gray-700",
+      "body_base": "text-base text-gray-600",
+      "body_sm": "text-sm text-gray-500",
+      "caption": "text-xs font-medium uppercase tracking-wider text-gray-400"
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#1B4D3E",
+        "foreground": "#FFFFFF",
+        "50": "#E8F5F1",
+        "100": "#C6E6DA",
+        "200": "#96CCBA",
+        "300": "#63AD96",
+        "400": "#3B8F76",
+        "500": "#1B4D3E",
+        "600": "#123D31",
+        "700": "#0D2E25",
+        "800": "#081F19",
+        "900": "#04120E"
+      },
+      "secondary": {
+        "DEFAULT": "#E07A5F",
+        "foreground": "#FFFFFF",
+        "50": "#FCF3F0",
+        "100": "#F8E0D9",
+        "200": "#F2C2B5",
+        "300": "#EBA391",
+        "400": "#E68D74",
+        "500": "#E07A5F",
+        "600": "#C95D40",
+        "700": "#A64228",
+        "800": "#85311C",
+        "900": "#662211"
+      },
+      "background": "#F4F1DE",
+      "surface": "#FFFFFF",
+      "text": {
+        "primary": "#2D3142",
+        "secondary": "#4F5D75",
+        "muted": "#8D99AE"
+      },
+      "status": {
+        "success": "#3D5A80", 
+        "warning": "#EE6C4D",
+        "error": "#D62828",
+        "info": "#98C1D9"
+      }
+    },
+    "gradients": {
+      "primary": "bg-gradient-to-br from-[#1B4D3E] to-[#123D31]",
+      "surface_warm": "bg-gradient-to-b from-[#FFFFFF] to-[#F4F1DE]"
+    },
+    "rules": {
+      "usage": "Use Primary Green for branding, headers, and primary actions. Use Secondary Terracotta for 'Call to Actions' that need attention (like 'Register Expense'). Use Warm Sand for page backgrounds to reduce eye strain.",
+      "dark_mode": "Avoid pure black. Use #0A0F0D (Deepest Green-Black) for backgrounds.",
+      "contrast": "Ensure text is always legible. Use #FFFFFF on Primary buttons. Use #2D3142 on Surface cards."
+    }
+  },
+  "layout_strategies": {
+    "grid_system": {
+      "mobile": "grid-cols-1 gap-4 p-4",
+      "desktop": "grid-cols-12 gap-8 p-8"
+    },
+    "containers": {
+      "card": "bg-white rounded-2xl shadow-sm border border-[#1B4D3E]/10 p-5",
+      "page_shell": "min-h-screen bg-[#F4F1DE] pb-24 md:pb-0"
+    },
+    "spacing": {
+      "section_gap": "gap-6",
+      "item_gap": "gap-3",
+      "internal_padding": "p-5"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "rounded-full bg-[#1B4D3E] text-white hover:bg-[#123D31] transition-all shadow-md hover:shadow-lg h-12 px-6 font-semibold tracking-wide",
+      "secondary": "rounded-full bg-[#E07A5F] text-white hover:bg-[#C95D40] transition-all shadow-sm hover:shadow-md h-12 px-6 font-semibold",
+      "outline": "rounded-full border-2 border-[#1B4D3E] text-[#1B4D3E] hover:bg-[#1B4D3E]/5 transition-all h-12 px-6 font-medium",
+      "ghost": "rounded-full text-[#4F5D75] hover:bg-gray-100 hover:text-[#1B4D3E] transition-all h-10 px-4 font-medium"
+    },
+    "inputs": {
+      "default": "rounded-xl border-gray-200 bg-white/80 focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent h-12 px-4 text-base shadow-sm transition-all placeholder:text-gray-400",
+      "label": "text-sm font-semibold text-[#2D3142] mb-1.5 block"
+    },
+    "cards": {
+      "kpi": "bg-white rounded-2xl p-5 shadow-[0_2px_8px_rgba(27,77,62,0.08)] border border-[#1B4D3E]/5 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300",
+      "transaction": "bg-white rounded-xl p-4 flex items-center justify-between border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer"
+    },
+    "navigation": {
+      "bottom_bar": "fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 h-20 pb-2 z-50 flex justify-around items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)]",
+      "nav_item": "flex flex-col items-center justify-center w-full h-full space-y-1 text-gray-400 hover:text-[#1B4D3E] data-[active=true]:text-[#1B4D3E] transition-colors",
+      "nav_icon": "w-6 h-6",
+      "nav_label": "text-[10px] font-medium tracking-wide"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "soft": "shadow-[0_4px_20px_rgba(27,77,62,0.06)]",
+      "float": "shadow-[0_10px_30px_rgba(27,77,62,0.12)]"
+    },
+    "borders": {
+      "subtle": "border border-[#1B4D3E]/10"
+    },
+    "textures": {
+      "grain": "Use a subtle SVG noise overlay with 2% opacity on the main background to give it a 'paper' feel.",
+      "glass": "backdrop-blur-xl bg-white/80"
+    }
+  },
+  "assets": {
+    "icons": {
+      "library": "lucide-react",
+      "style": "Stroke width 2px, rounded joins",
+      "mapping": {
+        "home": "Home",
+        "pending": "Clock",
+        "register": "PlusCircle",
+        "kpi": "BarChart3",
+        "settings": "Settings",
+        "income": "TrendingUp",
+        "expense": "TrendingDown",
+        "user": "User"
+      }
+    },
+    "images": {
+      "context_market": "https://images.pexels.com/photos/27819110/pexels-photo-27819110.jpeg",
+      "context_owner": "https://images.unsplash.com/photo-1742909618901-c0f1c51b4d14",
+      "context_coffee": "https://images.pexels.com/photos/32746742/pexels-photo-32746742.jpeg"
+    }
+  },
+  "motion": {
+    "transitions": "transition-all duration-300 ease-out",
+    "hover_lift": "hover:-translate-y-1 hover:shadow-lg",
+    "page_transition": "animate-in fade-in slide-in-from-bottom-4 duration-500",
+    "list_stagger": "stagger-children"
+  },
+  "instructions_to_main_agent": {
+    "general": "Build a mobile-first PWA. Ensure touch targets are at least 44px. Use the 'Suma' brand identity—clean, warm, and professional.",
+    "layout_rules": [
+      "Use a fixed bottom navigation for the 3 main tabs: Pendientes, Registrar, KPIs.",
+      "The 'Registrar' button in the center should be visually distinct (larger or different color).",
+      "Use padding 'p-5' or 'p-6' for containers instead of 'p-4' to feel more spacious.",
+      "Round corners significantly (rounded-2xl or rounded-3xl) to feel friendly."
+    ],
+    "component_overrides": [
+      "Customize Shadcn cards to remove the heavy border and rely on soft shadows.",
+      "Customize Shadcn inputs to be taller (h-12 or h-14) for better mobile typing.",
+      "Use the 'Manrope' font for all headings. Import it via Google Fonts or Fontsource."
+    ],
+    "accessibility": [
+      "Ensure text contrast ratios (4.5:1).",
+      "Add aria-labels to the bottom navigation buttons."
+    ]
+  },
+  "UNIVERSAL_GUIDELINES": {
+    "do_not": [
+      "Do not use generic blue/purple gradients.",
+      "Do not use 'Inter' font for headings.",
+      "Do not make buttons too small.",
+      "Do not center-align long text blocks."
+    ],
+    "do": [
+      "Use warm, earthy tones.",
+      "Use 'Manrope' for personality.",
+      "Make the 'Registrar' action very prominent.",
+      "Show positive reinforcement (green colors) for income and neutral/warm for expenses."
+    ]
+  }
+}
