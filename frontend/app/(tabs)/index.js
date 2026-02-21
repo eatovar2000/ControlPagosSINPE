@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,28 +6,63 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
+  RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { colors, API_URL } from '../../lib/theme';
+import { useAuth } from '../../lib/AuthContext';
 
 export default function PendientesScreen() {
+  const { getAuthHeader, isAuthenticated } = useAuth();
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        await fetch(`${API_URL}/seed`, { method: 'POST' });
-        const res = await fetch(`${API_URL}/v1/movements?status=pending`);
-        const data = await res.json();
-        setMovements(data);
-      } catch (e) {
-        console.error('Error loading movements:', e);
-      } finally {
-        setLoading(false);
+  const loadMovements = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
+    setError(null);
+    
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch(`${API_URL}/v1/movements?status=pending`, {
+        headers: {
+          ...authHeader,
+        },
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) {
+          setError('Sesion expirada');
+          return;
+        }
+        throw new Error('Error al cargar movimientos');
       }
-    };
-    load();
-  }, []);
+      
+      const data = await res.json();
+      setMovements(data);
+    } catch (e) {
+      console.error('Error loading movements:', e);
+      setError('No se pudieron cargar los movimientos');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Reload on tab focus
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        loadMovements();
+      }
+    }, [isAuthenticated])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadMovements(false);
+  };
 
   const formatCRC = (amount) =>
     new Intl.NumberFormat('es-CR', {
@@ -38,7 +73,18 @@ export default function PendientesScreen() {
 
   return (
     <View style={styles.safe}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
         <Text style={styles.brand}>SUMA</Text>
         <Text style={styles.title}>Pendientes</Text>
         <Text style={styles.subtitle}>
@@ -50,11 +96,23 @@ export default function PendientesScreen() {
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
+        ) : error ? (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.errorIcon}>{'\u26A0'}</Text>
+            <Text style={styles.errorTitle}>Error</Text>
+            <Text style={styles.emptyText}>{error}</Text>
+            <Pressable style={styles.retryBtn} onPress={() => loadMovements()}>
+              <Text style={styles.retryBtnText}>Reintentar</Text>
+            </Pressable>
+          </View>
         ) : movements.length === 0 ? (
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyIcon}>{'\u2713'}</Text>
             <Text style={styles.emptyTitle}>Todo al dia</Text>
             <Text style={styles.emptyText}>No hay movimientos pendientes</Text>
+            <Text style={styles.emptyHint}>
+              Usa la pestana "Registrar" para agregar movimientos
+            </Text>
           </View>
         ) : (
           <View style={styles.list}>
@@ -95,7 +153,7 @@ export default function PendientesScreen() {
                     </View>
                     <View style={styles.cardInfo}>
                       <Text style={styles.cardTitle} numberOfLines={1}>
-                        {mov.description}
+                        {mov.description || 'Sin descripcion'}
                       </Text>
                       <Text style={styles.cardMeta}>
                         {mov.date}
@@ -154,15 +212,43 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginBottom: 12,
   },
+  errorIcon: {
+    fontSize: 36,
+    color: colors.warning,
+    marginBottom: 12,
+  },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.textPrimary,
   },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.warning,
+  },
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  emptyHint: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 16,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  retryBtn: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: colors.primary,
+    borderRadius: 20,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   list: { gap: 12 },
   card: {
