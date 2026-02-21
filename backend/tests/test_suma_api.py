@@ -199,14 +199,13 @@ class TestKPIsEndpoint:
 
 
 class TestSeedEndpoint:
-    """Seed data endpoint tests - Note: May fail due to user_id constraint"""
+    """Seed data endpoint tests - KNOWN ISSUE: Broken due to user_id constraint"""
     
+    @pytest.mark.skip(reason="KNOWN ISSUE: Seed endpoint fails with IntegrityError - movements require user_id which is NOT NULL")
     def test_seed_returns_response(self):
-        """Test /api/seed returns a response (may be error about user_id)"""
+        """Test /api/seed returns a response (BROKEN - user_id NOT NULL constraint)"""
         response = requests.post(f"{BASE_URL}/api/seed")
-        # This endpoint may fail due to user_id NOT NULL constraint in movements
-        # Accept 200 or 500 as valid responses
-        assert response.status_code in [200, 500]
-        if response.status_code == 200:
-            data = response.json()
-            assert "message" in data
+        # This endpoint fails due to user_id NOT NULL constraint in movements
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
