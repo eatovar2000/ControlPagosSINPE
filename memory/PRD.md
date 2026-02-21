@@ -1,84 +1,91 @@
 # Suma — PRD (Product Requirements Document)
 
 ## Problem Statement
-App de gestion de movimientos financieros para pequenos emprendedores en Costa Rica que cobran por SINPE. Funcionalidad core: bandeja de movimientos (ingreso/gasto), clasificacion por unidad de negocio, responsable opcional, etiquetas, estados, KPIs simples.
+App de gestion de movimientos financieros para pequenos emprendedores en Costa Rica (SINPE). Un solo codebase para PWA Web + iOS + Android.
 
 ## Architecture
-- **Frontend**: React 19 + Tailwind CSS + shadcn/ui + react-router-dom (PWA-ready)
-- **Backend**: FastAPI (Python) REST API versionada (v1)
-- **Database**: MongoDB (via Motor async driver)
-- **Design System**: "Suma" — Manrope + IBM Plex Sans, Deep Jungle Green (#1B4D3E) + Terracotta (#E07A5F), Warm Sand (#F4F1DE) background
+- **Frontend**: Expo SDK 53 (React Native) + React Native Web + Expo Router (file-based tabs)
+- **Backend**: FastAPI (Python 3.12) + SQLAlchemy 2.0 async + asyncpg
+- **Database**: PostgreSQL 15 (DB: suma, user: postgres)
+- **Migrations**: Alembic (initial_schema migration applied)
+- **Design System**: "Suma" — Deep Jungle Green (#1B4D3E) + Terracotta (#E07A5F), Warm Sand (#F4F1DE) bg
 
 ## User Personas
-1. **Maria** — Duena de pulperia, maneja ingresos/gastos diarios, no tech-savvy, usa celular
-2. **Carlos** — Vendedor en ferias, necesita clasificar por evento, multiples responsables
+1. **Maria** — Duena de pulperia, ingresos/gastos diarios, celular
+2. **Carlos** — Vendedor en ferias, clasificar por evento, multiples responsables
 
 ## Core Requirements (Static)
 - Bandeja de movimientos pendientes
-- Registro de ingresos/gastos
+- Registro de ingresos/gastos en CRC
 - Clasificacion por unidad de negocio (sucursal/marca/evento)
 - Responsable opcional por movimiento
 - Etiquetas libres
 - Estados: pendiente, clasificado, cerrado
-- KPIs: balance, ingresos, gastos, conteo pendientes
-- Autenticacion federada (Google + SMS OTP via Firebase Auth) — PLANNED
-- PWA instalable
-- Moneda: CRC (Colones costarricenses)
+- KPIs: balance, ingresos, gastos, pendientes
+- Auth federada: Google Sign-In + SMS OTP (Firebase Auth) — PLANNED
+- PWA instalable, iOS app, Android app — SINGLE CODEBASE (Expo)
 
 ## What's Been Implemented
-### 2026-01-28 — Skeleton MVP (Fase 0)
-- [x] Backend API completa: health, CRUD movements, business-units, tags, kpis/summary, seed
-- [x] Frontend shell con bottom navigation (3 tabs: Pendientes, Registrar, KPIs)
-- [x] Pagina Pendientes: lista de movimientos pendientes con datos reales
-- [x] Pagina Registrar: formulario skeleton (tipo, monto, descripcion, campos placeholder)
-- [x] Pagina KPIs: dashboard con balance, ingresos, gastos, pendientes
-- [x] Design system Suma aplicado (colores, tipografia, spacing)
-- [x] PWA manifest configurado
+
+### 2026-01-28 — Skeleton MVP (Expo + PostgreSQL)
+- [x] Expo SDK 53 + React Native Web frontend (single codebase)
+- [x] Expo Router with file-based tab navigation (3 tabs)
+- [x] FastAPI backend con SQLAlchemy async + asyncpg
+- [x] PostgreSQL 15 como fuente de verdad
+- [x] Alembic migrations (initial_schema)
+- [x] 13 API endpoints: health, CRUD movements, business-units, tags, kpis/summary, seed
+- [x] 3 screens: Pendientes (lista), Registrar (formulario skeleton), KPIs (dashboard)
 - [x] Seed data: 5 movimientos, 2 unidades, 3 tags
-- [x] Testing: Backend 100%, Frontend 95%
+- [x] Testing: Backend 100%, Frontend 90%
+
+## Tech Stack Details
+| Component | Technology | File |
+|-----------|-----------|------|
+| Entry point | expo-router/entry | app.json |
+| Tab Layout | Expo Router Tabs | app/(tabs)/_layout.js |
+| Pendientes | React Native ScrollView | app/(tabs)/index.js |
+| Registrar | React Native TextInput/Pressable | app/(tabs)/registrar.js |
+| KPIs | React Native View/Text | app/(tabs)/kpis.js |
+| Theme | StyleSheet + colors | lib/theme.js |
+| DB models | SQLAlchemy ORM | backend/models.py |
+| DB engine | asyncpg + AsyncSession | backend/database.py |
+| API | FastAPI APIRouter | backend/server.py |
+| Migrations | Alembic | backend/migrations/ |
 
 ## Prioritized Backlog
 
-### P0 — Modulo Auth (Siguiente)
+### P0 — Modulo Auth
 - Firebase Auth (Google Sign-In + SMS OTP)
-- Registro/login flow
+- User model en PostgreSQL
 - Proteccion de rutas
-- User model en DB
 
-### P0 — Modulo Movimientos (Funcional)
-- Formulario Registrar conectado al backend (crear movimiento real)
-- Editar movimiento
-- Eliminar movimiento
-- Cambiar estado (pendiente -> clasificado -> cerrado)
+### P0 — Modulo Movimientos (funcional)
+- Formulario Registrar conectado al backend
+- Editar/eliminar movimiento
+- Cambiar estado workflow
 
 ### P1 — Modulo Unidades/RBAC
-- Selector de unidad de negocio en formulario
-- CRUD de unidades
+- Selector de unidad en formulario
+- CRUD unidades
 - Responsable por movimiento
 
 ### P1 — Modulo Etiquetas
-- Selector de etiquetas en formulario
-- Crear etiquetas inline
+- Selector de etiquetas
 - Filtrar por etiqueta
 
-### P1 — Modulo KPIs Avanzado
-- Filtro por periodo (semana/mes/anio)
-- Filtro por unidad de negocio
-- Graficos con Recharts
+### P1 — KPIs Avanzados
+- Filtro periodo/unidad
+- Graficos
 
 ### P2 — PWA Completa
-- Service Worker para cache offline
-- Push notifications
-- Install prompt
+- Service Worker, push notifications, install prompt
 
 ### P2 — Polish
-- Dark mode
-- Export CSV
-- Onboarding flow
+- Dark mode, export CSV, onboarding
 
 ## Next Tasks (Modular Forks)
-1. **Auth** → Firebase Auth integration
-2. **Movimientos** → Formulario funcional, CRUD completo
-3. **Unidades/RBAC** → Clasificacion real
-4. **Pendientes/Claim** → Workflow de estados
-5. **KPIs** → Graficos y filtros
+1. Auth (Firebase)
+2. Movimientos (formulario funcional)
+3. Unidades/RBAC
+4. Pendientes/Claim (workflow estados)
+5. KPIs (graficos + filtros)
