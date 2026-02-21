@@ -1,91 +1,145 @@
 # Suma — PRD (Product Requirements Document)
 
 ## Problem Statement
-App de gestion de movimientos financieros para pequenos emprendedores en Costa Rica (SINPE). Un solo codebase para PWA Web + iOS + Android.
+App de gestión de movimientos financieros para pequeños emprendedores en Costa Rica (SINPE). Un solo codebase para PWA Web + iOS + Android.
 
 ## Architecture
 - **Frontend**: Expo SDK 53 (React Native) + React Native Web + Expo Router (file-based tabs)
 - **Backend**: FastAPI (Python 3.12) + SQLAlchemy 2.0 async + asyncpg
 - **Database**: PostgreSQL 15 (DB: suma, user: postgres)
-- **Migrations**: Alembic (initial_schema migration applied)
+- **Migrations**: Alembic
+- **Authentication**: Firebase Auth (Google Sign-In + SMS OTP)
 - **Design System**: "Suma" — Deep Jungle Green (#1B4D3E) + Terracotta (#E07A5F), Warm Sand (#F4F1DE) bg
 
 ## User Personas
-1. **Maria** — Duena de pulperia, ingresos/gastos diarios, celular
-2. **Carlos** — Vendedor en ferias, clasificar por evento, multiples responsables
+1. **Maria** — Dueña de pulpería, ingresos/gastos diarios, celular
+2. **Carlos** — Vendedor en ferias, clasificar por evento, múltiples responsables
 
-## Core Requirements (Static)
+## Core Requirements
 - Bandeja de movimientos pendientes
 - Registro de ingresos/gastos en CRC
-- Clasificacion por unidad de negocio (sucursal/marca/evento)
+- Clasificación por unidad de negocio (sucursal/marca/evento)
 - Responsable opcional por movimiento
 - Etiquetas libres
 - Estados: pendiente, clasificado, cerrado
 - KPIs: balance, ingresos, gastos, pendientes
-- Auth federada: Google Sign-In + SMS OTP (Firebase Auth) — PLANNED
+- Auth federada: Google Sign-In + SMS OTP (Firebase Auth)
 - PWA instalable, iOS app, Android app — SINGLE CODEBASE (Expo)
 
 ## What's Been Implemented
 
-### 2026-01-28 — Skeleton MVP (Expo + PostgreSQL)
-- [x] Expo SDK 53 + React Native Web frontend (single codebase)
+### 2026-02-21 — Authentication Module (Firebase Auth)
+- [x] Firebase Admin SDK configurado en backend
+- [x] Modelo `User` en PostgreSQL (firebase_uid, email, phone, role, etc.)
+- [x] Middleware de verificación JWT (`firebase_auth.py`)
+- [x] Endpoints `/api/v1/auth/register` y `/api/v1/auth/me`
+- [x] Pantalla de login con Google Sign-In y SMS OTP
+- [x] AuthContext y AuthProvider en frontend
+- [x] Protección de rutas (redirect a login si no autenticado)
+- [x] Header con información de usuario y botón de logout
+- [x] Flujo SMS con código de país Costa Rica (+506)
+- [x] reCAPTCHA invisible para Phone Auth
+
+### 2026-02-21 — Infrastructure Fixes
+- [x] PostgreSQL 15 instalado y configurado en el entorno
+- [x] Migraciones Alembic actualizadas con tabla `users`
+- [x] Firebase Service Account configurado via variable de entorno
+
+### Previous — Skeleton MVP (Expo + PostgreSQL)
+- [x] Expo SDK 53 + React Native Web frontend
 - [x] Expo Router with file-based tab navigation (3 tabs)
 - [x] FastAPI backend con SQLAlchemy async + asyncpg
-- [x] PostgreSQL 15 como fuente de verdad
-- [x] Alembic migrations (initial_schema)
-- [x] 13 API endpoints: health, CRUD movements, business-units, tags, kpis/summary, seed
-- [x] 3 screens: Pendientes (lista), Registrar (formulario skeleton), KPIs (dashboard)
+- [x] PostgreSQL como fuente de verdad
+- [x] 17+ API endpoints funcionando
+- [x] 3 screens: Pendientes, Registrar, KPIs
 - [x] Seed data: 5 movimientos, 2 unidades, 3 tags
-- [x] Testing: Backend 100%, Frontend 90%
 
-## Tech Stack Details
-| Component | Technology | File |
-|-----------|-----------|------|
-| Entry point | expo-router/entry | app.json |
-| Tab Layout | Expo Router Tabs | app/(tabs)/_layout.js |
-| Pendientes | React Native ScrollView | app/(tabs)/index.js |
-| Registrar | React Native TextInput/Pressable | app/(tabs)/registrar.js |
-| KPIs | React Native View/Text | app/(tabs)/kpis.js |
-| Theme | StyleSheet + colors | lib/theme.js |
-| DB models | SQLAlchemy ORM | backend/models.py |
-| DB engine | asyncpg + AsyncSession | backend/database.py |
-| API | FastAPI APIRouter | backend/server.py |
-| Migrations | Alembic | backend/migrations/ |
+## Tech Stack
+| Component | Technology |
+|-----------|-----------|
+| Frontend | Expo SDK 53, React Native, React Native Web |
+| Backend | FastAPI, SQLAlchemy, Alembic |
+| Database | PostgreSQL 15 |
+| Auth | Firebase Auth (Google + Phone) |
+| Tabs | Expo Router |
+
+## Database Schema
+- `users`: id, firebase_uid, email, phone, display_name, photo_url, provider, role, timestamps
+- `movements`: id, type, amount, currency, description, responsible, business_unit_id, status, date, tags, timestamps
+- `business_units`: id, name, type, created_at
+- `tags`: id, name, created_at
+
+## API Endpoints
+### Auth (Protected)
+- `POST /api/v1/auth/register` - Registrar usuario después de Firebase auth
+- `GET /api/v1/auth/me` - Obtener perfil del usuario actual
+
+### Public
+- `GET /api/health` - Health check con estado de Firebase
+- `POST /api/seed` - Poblar base de datos con datos de ejemplo
+- `GET /api/v1/movements` - Listar movimientos
+- `POST /api/v1/movements` - Crear movimiento
+- `PATCH /api/v1/movements/{id}` - Actualizar movimiento
+- `DELETE /api/v1/movements/{id}` - Eliminar movimiento
+- `GET /api/v1/business-units` - Listar unidades de negocio
+- `POST /api/v1/business-units` - Crear unidad
+- `GET /api/v1/tags` - Listar etiquetas
+- `POST /api/v1/tags` - Crear etiqueta
+- `GET /api/v1/kpis/summary` - Resumen de KPIs
 
 ## Prioritized Backlog
 
-### P0 — Modulo Auth
-- Firebase Auth (Google Sign-In + SMS OTP)
-- User model en PostgreSQL
-- Proteccion de rutas
+### P0 — Formulario Registrar (funcional)
+- Conectar formulario al backend
+- Guardar movimientos reales
 
-### P0 — Modulo Movimientos (funcional)
-- Formulario Registrar conectado al backend
-- Editar/eliminar movimiento
-- Cambiar estado workflow
+### P0 — Flujo post-login
+- Registrar usuario en PostgreSQL al autenticarse
+- Mostrar datos del usuario en el header
 
-### P1 — Modulo Unidades/RBAC
+### P1 — Módulo Unidades/RBAC
 - Selector de unidad en formulario
-- CRUD unidades
-- Responsable por movimiento
+- CRUD completo de unidades
+- Roles base implementados (user, admin)
 
-### P1 — Modulo Etiquetas
-- Selector de etiquetas
+### P1 — Módulo Etiquetas
+- Selector de etiquetas en formulario
 - Filtrar por etiqueta
 
 ### P1 — KPIs Avanzados
-- Filtro periodo/unidad
-- Graficos
+- Filtro por período
+- Filtro por unidad
+- Gráficos
 
 ### P2 — PWA Completa
-- Service Worker, push notifications, install prompt
+- Service Worker
+- Push notifications
+- Install prompt
 
 ### P2 — Polish
-- Dark mode, export CSV, onboarding
+- Dark mode
+- Export CSV
+- Onboarding
 
-## Next Tasks (Modular Forks)
-1. Auth (Firebase)
-2. Movimientos (formulario funcional)
-3. Unidades/RBAC
-4. Pendientes/Claim (workflow estados)
-5. KPIs (graficos + filtros)
+## Testing Status
+- Backend: 17/17 tests passed (100%)
+- Frontend: Login UI verified (100%)
+- Test reports: `/app/test_reports/iteration_3.json`
+
+## Environment Variables
+### Backend (.env)
+- `DATABASE_URL` - PostgreSQL connection string
+- `FIREBASE_SERVICE_ACCOUNT_JSON` - Firebase Admin credentials (JSON string)
+
+### Frontend (.env)
+- `EXPO_PUBLIC_API_URL` - Backend API URL
+- `EXPO_PUBLIC_FIREBASE_*` - Firebase Web config
+
+## Files Reference
+- `/app/backend/server.py` - FastAPI app
+- `/app/backend/firebase_auth.py` - Firebase token verification
+- `/app/backend/models.py` - SQLAlchemy models
+- `/app/frontend/app/login.js` - Login screen
+- `/app/frontend/lib/AuthContext.js` - Auth state management
+- `/app/frontend/lib/firebase.js` - Firebase client SDK
+- `/app/frontend/components/AppHeader.js` - User header with logout
