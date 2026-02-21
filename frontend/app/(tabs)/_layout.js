@@ -12,16 +12,33 @@ function TabIcon({ name, focused, isCenter }) {
     );
   }
 
-  const icons = {
-    Pendientes: focused ? '\u25CF' : '\u25CB',
-    KPIs: focused ? '\u25A0' : '\u25A1',
+  // Clear icons using unicode symbols
+  // Inbox/List for movements, Bar chart for KPIs
+  const getIcon = () => {
+    if (name === 'Pendientes') {
+      return (
+        <View style={styles.listIconWrap}>
+          <View style={[styles.listLine, focused && styles.listLineActive]} />
+          <View style={[styles.listLine, focused && styles.listLineActive]} />
+          <View style={[styles.listLine, focused && styles.listLineActive]} />
+        </View>
+      );
+    }
+    if (name === 'KPIs') {
+      return (
+        <View style={styles.chartIconWrap}>
+          <View style={[styles.chartBar, styles.chartBar1, focused && styles.chartBarActive]} />
+          <View style={[styles.chartBar, styles.chartBar2, focused && styles.chartBarActive]} />
+          <View style={[styles.chartBar, styles.chartBar3, focused && styles.chartBarActive]} />
+        </View>
+      );
+    }
+    return <Text style={styles.tabIcon}>{'\u25CB'}</Text>;
   };
 
   return (
     <View style={styles.tabIconWrap}>
-      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>
-        {icons[name] || '\u25CB'}
-      </Text>
+      {getIcon()}
     </View>
   );
 }
@@ -137,5 +154,45 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textMuted,
     letterSpacing: 0.5,
+  },
+  // List icon (3 horizontal lines)
+  listIconWrap: {
+    width: 20,
+    height: 16,
+    justifyContent: 'space-between',
+  },
+  listLine: {
+    width: 20,
+    height: 3,
+    backgroundColor: colors.textMuted,
+    borderRadius: 1.5,
+  },
+  listLineActive: {
+    backgroundColor: colors.primary,
+  },
+  // Chart icon (3 vertical bars)
+  chartIconWrap: {
+    width: 20,
+    height: 18,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  chartBar: {
+    width: 5,
+    backgroundColor: colors.textMuted,
+    borderRadius: 2,
+  },
+  chartBar1: {
+    height: 8,
+  },
+  chartBar2: {
+    height: 14,
+  },
+  chartBar3: {
+    height: 11,
+  },
+  chartBarActive: {
+    backgroundColor: colors.primary,
   },
 });

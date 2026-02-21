@@ -9,7 +9,7 @@
     "integration_issues": [
       {
         "component": "External Frontend URL",
-        "issue": "https://negocio-plus.preview.emergentagent.com returns 404 - Preview Unavailable",
+        "issue": "https://micro-expenses.preview.emergentagent.com returns 404 - Preview Unavailable",
         "impact": "Users cannot access the app via external URL",
         "fix_priority": "HIGH",
         "workaround": "App works correctly on localhost:3000"
@@ -49,7 +49,7 @@
     "/app/backend_test.py",
     "/tmp/suma_api_test_results.json"
   ],
-  "action_item_for_main_agent": "Fix external frontend URL configuration - https://negocio-plus.preview.emergentagent.com is returning 404. The app works perfectly on localhost:3000 but external URL needs proper routing/deployment configuration.",
+  "action_item_for_main_agent": "Fix external frontend URL configuration - https://micro-expenses.preview.emergentagent.com is returning 404. The app works perfectly on localhost:3000 but external URL needs proper routing/deployment configuration.",
   "updated_files": [
     "/app/backend_test.py"
   ],

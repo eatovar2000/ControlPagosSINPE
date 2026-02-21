@@ -6,8 +6,8 @@ from sqlalchemy import select, func, delete, update
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
+from pydantic import BaseModel, ConfigDict, field_validator
+from typing import List, Optional, Literal
 import uuid
 from datetime import datetime, timezone
 
@@ -41,7 +41,7 @@ class MovementCreate(BaseModel):
     description: str = ""
     responsible: Optional[str] = None
     business_unit_id: Optional[str] = None
-    status: str = "pending"
+    status: Literal["pending", "classified", "closed"] = "pending"
     date: str
     tags: List[str] = []
 
@@ -52,7 +52,7 @@ class MovementUpdate(BaseModel):
     description: Optional[str] = None
     responsible: Optional[str] = None
     business_unit_id: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[Literal["pending", "classified", "closed"]] = None
     date: Optional[str] = None
     tags: Optional[List[str]] = None
 
@@ -60,6 +60,7 @@ class MovementUpdate(BaseModel):
 class MovementResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
+    user_id: str
     type: str
     amount: float
     currency: str
@@ -125,6 +126,18 @@ class KPISummary(BaseModel):
     balance: float
     movement_count: int
     pending_count: int
+
+
+class BreakdownItem(BaseModel):
+    name: str
+    value: float
+
+
+class KPISummaryV2(BaseModel):
+    """Extended KPI summary with breakdowns for charts"""
+    totals: dict  # income_total, expense_total, balance
+    breakdown_type: List[BreakdownItem]  # income vs expense
+    breakdown_responsible: List[BreakdownItem]  # Top 6 + "Otros" for income by responsible
 
 
 # --- Health ---
@@ -237,7 +250,22 @@ async def get_current_user_profile(
     return user
 
 
-# --- Movements ---
+# --- Movements (Protected - require authentication) ---
+
+async def get_db_user_id(
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> str:
+    """Helper to get local user ID from Firebase token"""
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    return user_id
+
 
 @v1_router.get("/movements", response_model=List[MovementResponse])
 async def list_movements(
@@ -245,9 +273,21 @@ async def list_movements(
     type: Optional[str] = None,
     limit: int = Query(50, le=200),
     offset: int = 0,
+    firebase_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = select(Movement)
+    """List movements for the authenticated user"""
+    # Get local user ID
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
+    # Query movements for this user only
+    q = select(Movement).where(Movement.user_id == user_id)
     if status:
         q = q.where(Movement.status == status)
     if type:
@@ -258,10 +298,25 @@ async def list_movements(
 
 
 @v1_router.post("/movements", response_model=MovementResponse)
-async def create_movement(data: MovementCreate, db: AsyncSession = Depends(get_db)):
+async def create_movement(
+    data: MovementCreate,
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new movement for the authenticated user"""
+    # Get local user ID
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
     now = datetime.now(timezone.utc).isoformat()
     mov = Movement(
         id=str(uuid.uuid4()),
+        user_id=user_id,
         **data.model_dump(),
         created_at=now,
         updated_at=now,
@@ -273,21 +328,59 @@ async def create_movement(data: MovementCreate, db: AsyncSession = Depends(get_d
 
 
 @v1_router.patch("/movements/{movement_id}", response_model=MovementResponse)
-async def update_movement(movement_id: str, data: MovementUpdate, db: AsyncSession = Depends(get_db)):
-    updates = {k: v for k, v in data.model_dump().items() if v is not None}
-    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await db.execute(update(Movement).where(Movement.id == movement_id).values(**updates))
-    await db.commit()
-    result = await db.execute(select(Movement).where(Movement.id == movement_id))
+async def update_movement(
+    movement_id: str,
+    data: MovementUpdate,
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a movement (only if owned by user)"""
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
+    # Check ownership
+    result = await db.execute(
+        select(Movement).where(Movement.id == movement_id, Movement.user_id == user_id)
+    )
     mov = result.scalar_one_or_none()
     if not mov:
         raise HTTPException(status_code=404, detail="Movement not found")
+    
+    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.execute(
+        update(Movement)
+        .where(Movement.id == movement_id, Movement.user_id == user_id)
+        .values(**updates)
+    )
+    await db.commit()
+    await db.refresh(mov)
     return mov
 
 
 @v1_router.delete("/movements/{movement_id}")
-async def delete_movement(movement_id: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(delete(Movement).where(Movement.id == movement_id))
+async def delete_movement(
+    movement_id: str,
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a movement (only if owned by user)"""
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
+    result = await db.execute(
+        delete(Movement).where(Movement.id == movement_id, Movement.user_id == user_id)
+    )
     await db.commit()
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Movement not found")
@@ -330,24 +423,96 @@ async def create_tag(data: TagCreate, db: AsyncSession = Depends(get_db)):
     return tag
 
 
-# --- KPIs ---
+# --- KPIs (Protected - user-specific) ---
 
-@v1_router.get("/kpis/summary", response_model=KPISummary)
-async def kpi_summary(db: AsyncSession = Depends(get_db)):
-    income = await db.execute(select(func.coalesce(func.sum(Movement.amount), 0)).where(Movement.type == "income"))
-    expense = await db.execute(select(func.coalesce(func.sum(Movement.amount), 0)).where(Movement.type == "expense"))
-    count = await db.execute(select(func.count()).select_from(Movement))
-    pending = await db.execute(select(func.count()).select_from(Movement).where(Movement.status == "pending"))
+def get_date_filter(period: str):
+    """Return start date for period filter"""
+    from datetime import date, timedelta
+    today = date.today()
+    if period == "today":
+        return today.isoformat()
+    elif period == "week":
+        start = today - timedelta(days=today.weekday())  # Monday of current week
+        return start.isoformat()
+    elif period == "month":
+        return today.replace(day=1).isoformat()
+    return None  # No filter
 
-    total_income = float(income.scalar())
-    total_expense = float(expense.scalar())
 
+@v1_router.get("/kpis/summary", response_model=KPISummaryV2)
+async def kpi_summary(
+    period: Literal["today", "week", "month"] = "today",
+    firebase_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get KPI summary with breakdowns for the authenticated user's movements"""
+    firebase_uid = firebase_user.get("uid")
+    result = await db.execute(
+        select(User.id).where(User.firebase_uid == firebase_uid)
+    )
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not registered")
+    
+    # Base query with date filter
+    date_start = get_date_filter(period)
+    base_filter = [Movement.user_id == user_id]
+    if date_start:
+        base_filter.append(Movement.date >= date_start)
+    
+    # Total income
+    income_result = await db.execute(
+        select(func.coalesce(func.sum(Movement.amount), 0))
+        .where(*base_filter, Movement.type == "income")
+    )
+    total_income = float(income_result.scalar())
+    
+    # Total expense
+    expense_result = await db.execute(
+        select(func.coalesce(func.sum(Movement.amount), 0))
+        .where(*base_filter, Movement.type == "expense")
+    )
+    total_expense = float(expense_result.scalar())
+    
+    # Breakdown by type (for pie chart)
+    breakdown_type = []
+    if total_income > 0:
+        breakdown_type.append({"name": "Ingresos", "value": total_income})
+    if total_expense > 0:
+        breakdown_type.append({"name": "Gastos", "value": total_expense})
+    
+    # Breakdown by responsible (income only, top 6 + "Otros")
+    responsible_query = await db.execute(
+        select(
+            func.coalesce(Movement.responsible, '').label('resp'),
+            func.sum(Movement.amount).label('total')
+        )
+        .where(*base_filter, Movement.type == "income")
+        .group_by(Movement.responsible)
+        .order_by(func.sum(Movement.amount).desc())
+    )
+    responsible_rows = responsible_query.all()
+    
+    breakdown_responsible = []
+    otros_total = 0.0
+    for i, row in enumerate(responsible_rows):
+        resp_name = row.resp if row.resp else "Sin responsable"
+        if i < 6:
+            breakdown_responsible.append({"name": resp_name, "value": float(row.total)})
+        else:
+            otros_total += float(row.total)
+    
+    if otros_total > 0:
+        breakdown_responsible.append({"name": "Otros", "value": otros_total})
+    
     return {
-        "total_income": total_income,
-        "total_expense": total_expense,
-        "balance": total_income - total_expense,
-        "movement_count": count.scalar(),
-        "pending_count": pending.scalar(),
+        "totals": {
+            "income_total": total_income,
+            "expense_total": total_expense,
+            "balance": total_income - total_expense,
+        },
+        "breakdown_type": breakdown_type,
+        "breakdown_responsible": breakdown_responsible,
     }
 
 

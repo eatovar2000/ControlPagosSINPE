@@ -28,6 +28,44 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 
 ## What's Been Implemented
 
+### 2026-02-21 — FASE 8: KPIs con Gráficos Torta
+- [x] Backend: GET /api/v1/kpis/summary con filtros `period=today|week|month`
+- [x] Respuesta estructurada: `totals` (income_total, expense_total, balance)
+- [x] `breakdown_type`: array con Ingresos vs Gastos para gráfico torta
+- [x] `breakdown_responsible`: Top 6 responsables + "Otros", null/empty => "Sin responsable"
+- [x] Filtrado por fecha según período (hoy, semana desde lunes, mes desde día 1)
+- [x] Frontend: Tab KPIs con selector Hoy/Semana/Mes (default Hoy)
+- [x] 3 cards: Balance, Ingresos (verde), Gastos (rojo)
+- [x] 2 gráficos torta SVG: por tipo y por responsable
+- [x] SimplePieChart: implementación SVG custom (sin dependencias externas)
+- [x] Testing: 10/10 backend tests passed (100%), código frontend verificado
+
+### 2026-02-21 — FASE 7.1: UX Minimalista
+- [x] Selector "Mostrar: Pendientes | Todos" en tab Movimientos
+- [x] Default siempre a "Pendientes" al abrir la app (no recuerda selección)
+- [x] Vista "Todos" muestra todos los movimientos del usuario con status visible
+- [x] Acciones Clasificar/Cerrar/Reabrir funcionan en ambas vistas
+- [x] Iconos bottom tabs mejorados: Lista (Pendientes), + (Registrar), Barras (KPIs)
+- [x] Testing: 10/10 tests pasaron (100%)
+
+### 2026-02-21 — FASE 7: Pendientes + Claim
+- [x] Campo `status` en movements validado: `pending | classified | closed` (Literal type)
+- [x] Campo `responsible` opcional (texto libre) editable desde UI
+- [x] Tab Pendientes filtra solo `status='pending'`
+- [x] Modal para clasificar movimientos desde la lista de pendientes
+- [x] Botones "Clasificar" y "Cerrar" cambian status en backend
+- [x] Input de responsable en modal
+- [x] Mantiene ownership por `user_id`
+- [x] Testing: 69/70 tests pasaron (99%)
+
+### 2026-02-21 — Movements Module (Protected)
+- [x] Todos los endpoints de movements requieren autenticación
+- [x] Movimientos asociados a `user_id` del usuario autenticado
+- [x] GET /movements filtra por usuario + status opcional
+- [x] POST /movements crea con `status='pending'` por defecto
+- [x] PATCH /movements/{id} actualiza status y responsible
+- [x] DELETE /movements/{id} solo si es propietario
+
 ### 2026-02-21 — Authentication Module (Firebase Auth)
 - [x] Firebase Admin SDK configurado en backend
 - [x] Modelo `User` en PostgreSQL (firebase_uid, email, phone, role, etc.)
@@ -89,42 +127,29 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 
 ## Prioritized Backlog
 
-### P0 — Formulario Registrar (funcional)
-- Conectar formulario al backend
-- Guardar movimientos reales
+### P0 — COMPLETADO ✓
+- [x] FASE 8: KPIs con gráficos torta (filtros período, breakdown type/responsible)
+- [x] FASE 7.1: UX Minimalista (filtro Pendientes/Todos, iconos mejorados)
+- [x] FASE 7: Pendientes + Claim (status field, UI para clasificar)
+- [x] Módulo Movimientos conectado al backend
+- [x] Autenticación Firebase completa
 
-### P0 — Flujo post-login
-- Registrar usuario en PostgreSQL al autenticarse
-- Mostrar datos del usuario en el header
+### P1 — Siguiente
+- Módulo Unidades de Negocio + RBAC básico
+- UI para editar/eliminar movimientos (CRUD completo)
+- Selector de unidad en formulario de registro
 
-### P1 — Módulo Unidades/RBAC
-- Selector de unidad en formulario
-- CRUD completo de unidades
-- Roles base implementados (user, admin)
-
-### P1 — Módulo Etiquetas
-- Selector de etiquetas en formulario
-- Filtrar por etiqueta
-
-### P1 — KPIs Avanzados
-- Filtro por período
-- Filtro por unidad
-- Gráficos
-
-### P2 — PWA Completa
-- Service Worker
-- Push notifications
-- Install prompt
-
-### P2 — Polish
-- Dark mode
-- Export CSV
-- Onboarding
+### P2 — Futuro
+- SMS login (requiere activar billing en Firebase)
+- PWA completa (service worker, push notifications)
+- Export CSV, dark mode
 
 ## Testing Status
-- Backend: 17/17 tests passed (100%)
-- Frontend: Login UI verified (100%)
-- Test reports: `/app/test_reports/iteration_3.json`
+- FASE 8: 10/10 tests passed (100%) — `/app/test_reports/iteration_7.json`
+- FASE 7.1: 10/10 tests passed (100%)
+- FASE 7: 69/70 tests passed (99%)
+- Test reports: `/app/test_reports/iteration_6.json`, `/app/test_reports/iteration_5.json`
+- Issue conocido: `/api/seed` roto (no afecta funcionalidad principal)
 
 ## Environment Variables
 ### Backend (.env)
