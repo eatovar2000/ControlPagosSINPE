@@ -1,53 +1,95 @@
-import { useEffect } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { Clock, PlusCircle, BarChart3 } from "lucide-react";
+import PendientesPage from "@/pages/PendientesPage";
+import RegistrarPage from "@/pages/RegistrarPage";
+import KPIsPage from "@/pages/KPIsPage";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+function BottomNav() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const current = location.pathname;
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+  const tabs = [
+    { path: "/", label: "Pendientes", icon: Clock },
+    { path: "/registrar", label: "Registrar", icon: PlusCircle },
+    { path: "/kpis", label: "KPIs", icon: BarChart3 },
+  ];
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <nav
+      data-testid="bottom-navigation"
+      className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 h-20 z-50 flex justify-around items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
+      {tabs.map(({ path, label, icon: Icon }) => {
+        const isActive = current === path;
+        const isRegister = path === "/registrar";
+
+        return (
+          <button
+            key={path}
+            data-testid={`nav-${label.toLowerCase()}`}
+            data-active={isActive}
+            onClick={() => navigate(path)}
+            aria-label={label}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors duration-200 ${
+              isRegister
+                ? ""
+                : isActive
+                ? "text-[#1B4D3E]"
+                : "text-gray-400 hover:text-[#1B4D3E]"
+            }`}
+          >
+            {isRegister ? (
+              <div
+                className={`rounded-full p-3.5 -mt-7 shadow-lg transition-all duration-300 ${
+                  isActive
+                    ? "bg-[#C95D40] shadow-[#E07A5F]/30 scale-105"
+                    : "bg-[#E07A5F] hover:bg-[#C95D40]"
+                }`}
+              >
+                <Icon className="w-6 h-6 text-white" />
+              </div>
+            ) : (
+              <Icon className="w-6 h-6" />
+            )}
+            <span
+              className={`text-[10px] font-medium tracking-wide ${
+                isRegister
+                  ? isActive
+                    ? "text-[#E07A5F]"
+                    : "text-gray-400"
+                  : ""
+              }`}
+            >
+              {label}
+            </span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function AppShell() {
+  return (
+    <div className="min-h-screen bg-[#F4F1DE] pb-24">
+      <Routes>
+        <Route path="/" element={<PendientesPage />} />
+        <Route path="/registrar" element={<RegistrarPage />} />
+        <Route path="/kpis" element={<KPIsPage />} />
+      </Routes>
+      <BottomNav />
     </div>
   );
-};
+}
 
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <BrowserRouter>
+      <AppShell />
+    </BrowserRouter>
   );
 }
 
