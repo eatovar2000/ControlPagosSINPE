@@ -141,11 +141,11 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 
 ### P2 — Futuro
 - SMS login (requiere activar billing en Firebase)
-- KPIs avanzados (filtros, gráficos)
 - PWA completa (service worker, push notifications)
 - Export CSV, dark mode
 
 ## Testing Status
+- FASE 8: 10/10 tests passed (100%) — `/app/test_reports/iteration_7.json`
 - FASE 7.1: 10/10 tests passed (100%)
 - FASE 7: 69/70 tests passed (99%)
 - Test reports: `/app/test_reports/iteration_6.json`, `/app/test_reports/iteration_5.json`
