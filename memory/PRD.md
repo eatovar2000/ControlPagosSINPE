@@ -28,6 +28,14 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 
 ## What's Been Implemented
 
+### 2026-02-21 — FASE 7.1: UX Minimalista
+- [x] Selector "Mostrar: Pendientes | Todos" en tab Movimientos
+- [x] Default siempre a "Pendientes" al abrir la app (no recuerda selección)
+- [x] Vista "Todos" muestra todos los movimientos del usuario con status visible
+- [x] Acciones Clasificar/Cerrar/Reabrir funcionan en ambas vistas
+- [x] Iconos bottom tabs mejorados: Lista (Pendientes), + (Registrar), Barras (KPIs)
+- [x] Testing: 10/10 tests pasaron (100%)
+
 ### 2026-02-21 — FASE 7: Pendientes + Claim
 - [x] Campo `status` en movements validado: `pending | classified | closed` (Literal type)
 - [x] Campo `responsible` opcional (texto libre) editable desde UI
@@ -124,8 +132,9 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 - Export CSV, dark mode
 
 ## Testing Status
-- Backend FASE 7: 69/70 tests passed (99%)
-- Test reports: `/app/test_reports/iteration_5.json`
+- FASE 7.1: 10/10 tests passed (100%)
+- FASE 7: 69/70 tests passed (99%)
+- Test reports: `/app/test_reports/iteration_6.json`, `/app/test_reports/iteration_5.json`
 - Issue conocido: `/api/seed` roto (no afecta funcionalidad principal)
 
 ## Environment Variables
