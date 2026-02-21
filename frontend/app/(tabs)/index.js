@@ -122,7 +122,7 @@ export default function PendientesScreen() {
       }
       
       closeModal();
-      loadMovements(false);
+      loadMovements(false, filter);
     } catch (e) {
       console.error('Error updating movement:', e);
       Alert.alert('Error', 'No se pudo actualizar el movimiento');
@@ -201,8 +201,14 @@ export default function PendientesScreen() {
         ) : movements.length === 0 ? (
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyIcon}>{'\u2713'}</Text>
-            <Text style={styles.emptyTitle}>Todo al dia</Text>
-            <Text style={styles.emptyText}>No hay movimientos pendientes</Text>
+            <Text style={styles.emptyTitle}>
+              {filter === 'pending' ? 'Todo al dia' : 'Sin movimientos'}
+            </Text>
+            <Text style={styles.emptyText}>
+              {filter === 'pending' 
+                ? 'No hay movimientos pendientes' 
+                : 'No hay movimientos registrados'}
+            </Text>
             <Text style={styles.emptyHint}>
               Usa la pestana "Registrar" para agregar movimientos
             </Text>
