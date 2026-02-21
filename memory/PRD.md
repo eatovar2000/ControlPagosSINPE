@@ -107,37 +107,21 @@ App de gestión de movimientos financieros para pequeños emprendedores en Costa
 
 ## Prioritized Backlog
 
-### P0 — Formulario Registrar (funcional)
-- Conectar formulario al backend
-- Guardar movimientos reales
+### P0 — COMPLETADO ✓
+- [x] FASE 7: Pendientes + Claim (status field, UI para clasificar)
+- [x] Módulo Movimientos conectado al backend
+- [x] Autenticación Firebase completa
 
-### P0 — Flujo post-login
-- Registrar usuario en PostgreSQL al autenticarse
-- Mostrar datos del usuario en el header
+### P1 — Siguiente
+- Módulo Unidades de Negocio + RBAC básico
+- UI para editar/eliminar movimientos (CRUD completo)
+- Selector de unidad en formulario de registro
 
-### P1 — Módulo Unidades/RBAC
-- Selector de unidad en formulario
-- CRUD completo de unidades
-- Roles base implementados (user, admin)
-
-### P1 — Módulo Etiquetas
-- Selector de etiquetas en formulario
-- Filtrar por etiqueta
-
-### P1 — KPIs Avanzados
-- Filtro por período
-- Filtro por unidad
-- Gráficos
-
-### P2 — PWA Completa
-- Service Worker
-- Push notifications
-- Install prompt
-
-### P2 — Polish
-- Dark mode
-- Export CSV
-- Onboarding
+### P2 — Futuro
+- SMS login (requiere activar billing en Firebase)
+- KPIs avanzados (filtros, gráficos)
+- PWA completa (service worker, push notifications)
+- Export CSV, dark mode
 
 ## Testing Status
 - Backend: 17/17 tests passed (100%)
