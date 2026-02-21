@@ -12,18 +12,33 @@ function TabIcon({ name, focused, isCenter }) {
     );
   }
 
-  // Clear icons: list/inbox for Pendientes, chart for KPIs
-  const icons = {
-    Pendientes: '\u2630', // ☰ hamburger/list icon
-    KPIs: '\u2261',       // ≡ three lines / could represent bars
+  // Clear icons using unicode symbols
+  // Inbox/List for movements, Bar chart for KPIs
+  const getIcon = () => {
+    if (name === 'Pendientes') {
+      return (
+        <View style={styles.listIconWrap}>
+          <View style={[styles.listLine, focused && styles.listLineActive]} />
+          <View style={[styles.listLine, focused && styles.listLineActive]} />
+          <View style={[styles.listLine, focused && styles.listLineActive]} />
+        </View>
+      );
+    }
+    if (name === 'KPIs') {
+      return (
+        <View style={styles.chartIconWrap}>
+          <View style={[styles.chartBar, styles.chartBar1, focused && styles.chartBarActive]} />
+          <View style={[styles.chartBar, styles.chartBar2, focused && styles.chartBarActive]} />
+          <View style={[styles.chartBar, styles.chartBar3, focused && styles.chartBarActive]} />
+        </View>
+      );
+    }
+    return <Text style={styles.tabIcon}>{'\u25CB'}</Text>;
   };
-  
-  // Alternative visual: filled vs outline effect via opacity
+
   return (
     <View style={styles.tabIconWrap}>
-      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>
-        {icons[name] || '\u25CB'}
-      </Text>
+      {getIcon()}
     </View>
   );
 }
