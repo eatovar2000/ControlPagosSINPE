@@ -13,19 +13,6 @@ import { useFocusEffect } from 'expo-router';
 import { colors, API_URL } from '../../lib/theme';
 import { useAuth } from '../../lib/AuthContext';
 
-// Recharts works on web only
-const isWeb = Platform.OS === 'web';
-let PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend;
-if (isWeb) {
-  const recharts = require('recharts');
-  PieChart = recharts.PieChart;
-  Pie = recharts.Pie;
-  Cell = recharts.Cell;
-  ResponsiveContainer = recharts.ResponsiveContainer;
-  Tooltip = recharts.Tooltip;
-  Legend = recharts.Legend;
-}
-
 const PERIOD_OPTIONS = [
   { key: 'today', label: 'Hoy' },
   { key: 'week', label: 'Semana' },
@@ -34,6 +21,64 @@ const PERIOD_OPTIONS = [
 
 const COLORS_TYPE = ['#10B981', '#EF4444']; // green for income, red for expense
 const COLORS_RESPONSIBLE = ['#3B82F6', '#8B5CF6', '#F59E0B', '#06B6D4', '#EC4899', '#84CC16', '#6B7280'];
+
+// Simple SVG Pie Chart component (no external dependencies)
+const SimplePieChart = ({ data, colors: chartColors, size = 160 }) => {
+  if (!data || data.length === 0) return null;
+  
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  if (total === 0) return null;
+  
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = size / 2 - 10;
+  const innerRadius = radius * 0.6;
+  
+  let startAngle = -90;
+  const paths = data.map((item, index) => {
+    const angle = (item.value / total) * 360;
+    const endAngle = startAngle + angle;
+    
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = (endAngle * Math.PI) / 180;
+    
+    const x1 = cx + radius * Math.cos(startRad);
+    const y1 = cy + radius * Math.sin(startRad);
+    const x2 = cx + radius * Math.cos(endRad);
+    const y2 = cy + radius * Math.sin(endRad);
+    
+    const x3 = cx + innerRadius * Math.cos(endRad);
+    const y3 = cy + innerRadius * Math.sin(endRad);
+    const x4 = cx + innerRadius * Math.cos(startRad);
+    const y4 = cy + innerRadius * Math.sin(startRad);
+    
+    const largeArc = angle > 180 ? 1 : 0;
+    
+    const d = [
+      `M ${x1} ${y1}`,
+      `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
+      `L ${x3} ${y3}`,
+      `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x4} ${y4}`,
+      'Z',
+    ].join(' ');
+    
+    startAngle = endAngle;
+    
+    return (
+      <path
+        key={index}
+        d={d}
+        fill={chartColors[index % chartColors.length]}
+      />
+    );
+  });
+  
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {paths}
+    </svg>
+  );
+};
 
 export default function KPIsScreen() {
   const { getAuthHeader, isAuthenticated } = useAuth();
