@@ -389,6 +389,40 @@ const styles = StyleSheet.create({
   phoneBtnText: {
     color: '#FFFFFF',
   },
+  smsDisabledContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  smsDisabledBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    gap: 12,
+    backgroundColor: '#e8e8e8',
+    opacity: 0.7,
+    width: '100%',
+  },
+  smsDisabledIconWrap: {
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  smsDisabledIcon: {
+    fontSize: 16,
+    opacity: 0.5,
+  },
+  smsDisabledText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  smsDisabledHint: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
   form: {
     gap: 16,
   },
