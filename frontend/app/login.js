@@ -268,26 +268,18 @@ export default function LoginScreen() {
             )}
           </Pressable>
 
-          {/* Phone Sign-In */}
-          <Pressable
-            testID="phone-login-btn"
-            style={({ pressed }) => [
-              styles.authBtn,
-              styles.phoneBtn,
-              pressed && styles.btnPressed,
-            ]}
-            onPress={() => {
-              setAuthMethod('phone');
-              setLocalError(null);
-            }}
-          >
-            <View style={[styles.authIconWrap, styles.phoneIconWrap]}>
-              <Text style={styles.phoneIcon}>📱</Text>
+          {/* Phone Sign-In - Disabled until Firebase Billing enabled */}
+          <View style={styles.smsDisabledContainer}>
+            <View style={styles.smsDisabledBtn}>
+              <View style={[styles.authIconWrap, styles.smsDisabledIconWrap]}>
+                <Text style={styles.smsDisabledIcon}>📱</Text>
+              </View>
+              <Text style={styles.smsDisabledText}>SMS no disponible</Text>
             </View>
-            <Text style={[styles.authBtnText, styles.phoneBtnText]}>
-              Continuar con SMS
+            <Text style={styles.smsDisabledHint}>
+              SMS disponible al habilitar facturacion (Firebase Billing)
             </Text>
-          </Pressable>
+          </View>
 
           {/* reCAPTCHA container - invisible */}
           <View nativeID="recaptcha-container" />
